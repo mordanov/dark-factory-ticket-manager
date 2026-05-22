@@ -97,3 +97,23 @@ async def test_transition_403_non_assignee(client: AsyncClient, db_session: Asyn
         headers=_h(outsider),
     )
     assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_transition_403_admin_not_assignee(client: AsyncClient, db_session: AsyncSession):
+    """SEC-TR-002: Administrator who is not assigned to the ticket must get 403."""
+    owner, _, ticket = await _setup(db_session)
+    admin = User(
+        email=f"{uuid4()}@t.com",
+        hashed_password=hash_password("pw"),
+        role=UserRole.administrator,
+    )
+    db_session.add(admin)
+    await db_session.commit()
+
+    resp = await client.post(
+        f"/api/v1/tickets/{ticket.id}/transitions",
+        json={"to_status": "IN_PROGRESS"},
+        headers=_h(admin),
+    )
+    assert resp.status_code == 403
