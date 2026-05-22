@@ -1,0 +1,21 @@
+# JetBrains IDEs (PyCharm, IntelliJ IDEA, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio Code
+.vscode/
+
+# Other editor metadata
+.fleet/
+.zed/
+.history/
+*.swp
+*.swo
+*~
+
+# Local OS files
+.DS_Store
+Thumbs.db
+desktop.ini
