@@ -293,6 +293,8 @@ launch_role() {
 
    local work_dir
    work_dir="$(role_dir "$role")"
+   # Convert to absolute path so Terminal.app can find it
+   work_dir="$(cd "$work_dir" 2>/dev/null && pwd)" || work_dir="$(pwd)/$(role_dir "$role")"
 
    local prompt
    prompt="$(agent_prompt "$role" "$PROJECT_NAME" "$coordinator")"
