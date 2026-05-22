@@ -225,14 +225,15 @@ PROMPT
 # ── Terminal launcher ─────────────────────────────────────────────────────────
 # Tries several terminal emulators in order of preference.
 open_terminal() {
-  local title="$1"
-  local work_dir="$2"
-  local prompt="$3"
+   local title="$1"
+   local work_dir="$2"
+   local prompt="$3"
+   local role="$4"  # Add role to ensure unique temp files
 
-  # Write prompt to a temp file so we can pass it cleanly
-  local tmp
-  tmp=$(mktemp /tmp/brainstorm-agent-XXXXXX.txt)
-  printf '%s' "$prompt" > "$tmp"
+   # Write prompt to a temp file so we can pass it cleanly
+   local tmp
+   tmp=$(mktemp /tmp/brainstorm-agent-${role}-XXXXXX)
+   printf '%s' "$prompt" > "$tmp"
 
   local cmd="cd $(printf '%q' "$work_dir") && claude \"\$(cat $(printf '%q' "$tmp"))\"; rm -f $(printf '%q' "$tmp"); exec \$SHELL"
 
@@ -285,22 +286,22 @@ echo "==> Launching eight-agent brainstorm demo (project: $PROJECT_NAME)"
 echo ""
 
 launch_role() {
-  local role="$1"
-  local coordinator="$2"
-  local index="$3"
-  local total="$4"
+   local role="$1"
+   local coordinator="$2"
+   local index="$3"
+   local total="$4"
 
-  local work_dir
-  work_dir="$(role_dir "$role")"
+   local work_dir
+   work_dir="$(role_dir "$role")"
 
-  local prompt
-  prompt="$(agent_prompt "$role" "$PROJECT_NAME" "$coordinator")"
+   local prompt
+   prompt="$(agent_prompt "$role" "$PROJECT_NAME" "$coordinator")"
 
-  local title
-  title="Brainstorm: $(role_title "$role" | tr '[:upper:]' '[:lower:]')"
+   local title
+   title="Brainstorm: $(role_title "$role" | tr '[:upper:]' '[:lower:]')"
 
-  echo "  [$index/$total] $(role_title "$role") → $work_dir"
-  open_terminal "$title" "$work_dir" "$prompt"
+   echo "  [$index/$total] $(role_title "$role") → $work_dir"
+   open_terminal "$title" "$work_dir" "$prompt" "$role"
 }
 
 launch_role "product-manager" "true" 1 8
