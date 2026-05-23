@@ -7,15 +7,24 @@ import type { TicketResponse, TransitionBlockedError } from "../../src/types";
 
 const baseTicket: TicketResponse = {
   id: "t1",
+  display_id: null,
+  number: null,
   project_id: "p1",
   parent_ticket_id: null,
   title: "Some ticket",
   description: null,
   status: "OPEN",
+  ticket_type: "feature",
+  ticket_spec: null,
+  urgent: false,
+  blocker: false,
+  bugfix: false,
   created_by: { id: "u1", email: "admin@example.com", role: "administrator" },
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   assignees: [],
+  follow_up_count: 0,
+  tags: [],
 };
 
 describe("StatusTransitionButton", () => {

@@ -15,35 +15,30 @@ function wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+const baseTicket = {
+  project_id: "p1",
+  parent_ticket_id: null,
+  description: null,
+  display_id: null,
+  number: null,
+  ticket_type: "feature" as const,
+  ticket_spec: null,
+  urgent: false,
+  blocker: false,
+  bugfix: false,
+  created_by: { id: "u1", email: "admin@example.com", role: "administrator" as const },
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  assignees: [],
+  follow_up_count: 0,
+  tags: [],
+};
+
 const tickets: TicketListResponse = {
   total: 2,
   items: [
-    {
-      id: "t1",
-      project_id: "p1",
-      parent_ticket_id: null,
-      title: "First ticket",
-      description: null,
-      status: "OPEN",
-      created_by: { id: "u1", email: "admin@example.com", role: "administrator" },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      assignees: [],
-      follow_up_count: 0,
-    },
-    {
-      id: "t2",
-      project_id: "p1",
-      parent_ticket_id: null,
-      title: "Second ticket",
-      description: null,
-      status: "IN_PROGRESS",
-      created_by: { id: "u1", email: "admin@example.com", role: "administrator" },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      assignees: [],
-      follow_up_count: 0,
-    },
+    { ...baseTicket, id: "t1", title: "First ticket", status: "OPEN" as const },
+    { ...baseTicket, id: "t2", title: "Second ticket", status: "IN_PROGRESS" as const },
   ],
 };
 

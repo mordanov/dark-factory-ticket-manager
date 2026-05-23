@@ -6,16 +6,24 @@ import type { TicketResponse } from "../../src/types";
 
 const base: TicketResponse = {
   id: "t1",
+  display_id: "DEMO-0001",
+  number: 1,
   project_id: "p1",
   parent_ticket_id: null,
   title: "Fix login bug",
   description: null,
   status: "OPEN",
+  ticket_type: "bug",
+  ticket_spec: "backend",
+  urgent: false,
+  blocker: false,
+  bugfix: false,
   created_by: { id: "u1", email: "admin@example.com", role: "administrator" },
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   assignees: [],
   follow_up_count: 0,
+  tags: [],
 };
 
 function renderCard(ticket: Partial<TicketResponse> = {}) {
@@ -37,20 +45,27 @@ describe("TicketCard", () => {
     expect(screen.getByText("In Progress")).toBeInTheDocument();
   });
 
-  it("shows assignee emails", () => {
+  it("shows assignee email prefix", () => {
     renderCard({
       assignees: [{ user_id: "u2", email: "alice@example.com", has_progress_update: false }],
     });
-    expect(screen.getByText(/alice@example\.com/)).toBeInTheDocument();
+    expect(screen.getByText("alice")).toBeInTheDocument();
   });
 
-  it("shows follow-up count when > 0", () => {
-    renderCard({ follow_up_count: 3 });
-    expect(screen.getByText(/3 follow-ups/)).toBeInTheDocument();
+  it("shows tags when present", () => {
+    renderCard({
+      tags: [{ id: "tag1", name: "frontend" }],
+    });
+    expect(screen.getByText("frontend")).toBeInTheDocument();
   });
 
-  it("shows parent ticket link when parent_ticket_id present", () => {
-    renderCard({ parent_ticket_id: "parent123" });
-    expect(screen.getByRole("link", { name: "parent ticket" })).toHaveAttribute("href", "/tickets/parent123");
+  it("shows urgent flag badge when urgent is true", () => {
+    renderCard({ urgent: true });
+    expect(screen.getByText("URGENT")).toBeInTheDocument();
+  });
+
+  it("shows display_id badge when present", () => {
+    renderCard({ display_id: "DEMO-0001" });
+    expect(screen.getByText("DEMO-0001")).toBeInTheDocument();
   });
 });
