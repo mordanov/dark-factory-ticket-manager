@@ -8,10 +8,19 @@ export interface UserSummary {
   role: UserRole;
 }
 
+export interface ProjectTicketCounts {
+  open: number;
+  active: number;
+  done: number;
+}
+
 export interface ProjectSummary {
   id: string;
   name: string;
   slug: string;
+  code: string | null;
+  created_at: string;
+  ticket_counts: ProjectTicketCounts;
 }
 
 export interface AssigneeSummary {

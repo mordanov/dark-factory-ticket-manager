@@ -6,6 +6,11 @@ export async function listProjects(): Promise<ProjectSummary[]> {
   return data.items;
 }
 
+export async function createProject(body: { name: string; code: string }): Promise<ProjectSummary> {
+  const { data } = await apiClient.post<ProjectSummary>("/projects", body);
+  return data;
+}
+
 export async function listTickets(
   projectId: string,
   params?: { status?: string; assignee_id?: string; page?: number; page_size?: number }

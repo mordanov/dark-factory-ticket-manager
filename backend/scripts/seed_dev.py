@@ -83,13 +83,14 @@ async def seed() -> None:
             # --- Project ---
             await conn.execute(
                 """
-                INSERT INTO projects (id, name, slug, created_by)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO projects (id, name, slug, code, created_by)
+                VALUES ($1, $2, $3, $4, $5)
                 ON CONFLICT (slug) DO NOTHING
                 """,
                 PROJECT_ID,
                 "Demo Project",
                 "demo-project",
+                "DEMO-001",
                 ADMIN_ID,
             )
 
