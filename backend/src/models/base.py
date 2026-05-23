@@ -1,5 +1,10 @@
+from datetime import datetime
+
+from sqlalchemy import TIMESTAMP
 from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    pass
+    type_annotation_map = {
+        datetime: TIMESTAMP(timezone=True),
+    }
