@@ -33,7 +33,7 @@ async def test_create_emits_ticket_created_event(db_session: AsyncSession):
     project = await _project(db_session, user)
     await db_session.commit()
 
-    await create_ticket(db_session, project.id, TicketCreate(title="Test"), user)
+    await create_ticket(db_session, project.id, TicketCreate(title="Test", ticket_spec="backend"), user)
 
     result = await db_session.execute(select(TicketEvent).where(TicketEvent.event_type == "ticket.created"))
     events = result.scalars().all()

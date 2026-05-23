@@ -37,7 +37,7 @@ async def test_create_ticket_201(client: AsyncClient, db_session: AsyncSession):
 
     resp = await client.post(
         f"/api/v1/projects/{project.id}/tickets",
-        json={"title": "Test ticket"},
+        json={"title": "Test ticket", "ticket_spec": "backend"},
         headers=_auth_headers(user),
     )
     assert resp.status_code == 201
