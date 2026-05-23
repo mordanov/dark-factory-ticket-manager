@@ -9,6 +9,7 @@ import type {
   TransitionBlockedError,
   TicketStatus,
   EventListResponse,
+  TagResponse,
 } from "../types";
 
 export async function createTicket(
@@ -123,6 +124,23 @@ export async function listTicketEvents(
   const { data } = await apiClient.get<EventListResponse>(
     `/tickets/${ticketId}/events`,
     { params }
+  );
+  return data;
+}
+
+export async function searchTags(q: string): Promise<TagResponse[]> {
+  const { data } = await apiClient.get<TagResponse[]>("/tags", { params: { q } });
+  return data;
+}
+
+export async function addTag(ticketId: string, name: string): Promise<TicketResponse> {
+  const { data } = await apiClient.post<TicketResponse>(`/tickets/${ticketId}/tags`, { name });
+  return data;
+}
+
+export async function removeTag(ticketId: string, name: string): Promise<TicketResponse> {
+  const { data } = await apiClient.delete<TicketResponse>(
+    `/tickets/${ticketId}/tags/${encodeURIComponent(name)}`
   );
   return data;
 }

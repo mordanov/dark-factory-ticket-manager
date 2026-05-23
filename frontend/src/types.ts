@@ -2,6 +2,14 @@ export type UserRole = "administrator" | "user";
 
 export type TicketStatus = "OPEN" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | "CLOSED";
 
+export type TicketType =
+  | "bug" | "feature" | "improvement" | "investigation"
+  | "discovery" | "reporting" | "testing" | "analysis" | "other";
+
+export type TicketSpec =
+  | "backend" | "frontend" | "architecture" | "testing"
+  | "business_analysis" | "product_management" | "other";
+
 export interface UserSummary {
   id: string;
   email: string;
@@ -29,18 +37,31 @@ export interface AssigneeSummary {
   has_progress_update: boolean;
 }
 
+export interface TagResponse {
+  id: string;
+  name: string;
+}
+
 export interface TicketResponse {
   id: string;
+  display_id: string | null;
+  number: number | null;
   project_id: string;
   parent_ticket_id: string | null;
   title: string;
   description: string | null;
   status: TicketStatus;
+  ticket_type: TicketType;
+  ticket_spec: TicketSpec | null;
+  urgent: boolean;
+  blocker: boolean;
+  bugfix: boolean;
   created_by: UserSummary;
   created_at: string;
   updated_at: string;
   assignees: AssigneeSummary[];
   follow_up_count?: number;
+  tags: TagResponse[];
 }
 
 export interface TicketListResponse {
@@ -51,11 +72,22 @@ export interface TicketListResponse {
 export interface TicketCreate {
   title: string;
   description?: string | null;
+  ticket_type: TicketType;
+  ticket_spec: TicketSpec;
+  urgent: boolean;
+  blocker: boolean;
+  bugfix: boolean;
+  tags: string[];
 }
 
 export interface TicketUpdate {
   title?: string;
   description?: string | null;
+  ticket_type?: TicketType;
+  ticket_spec?: TicketSpec;
+  urgent?: boolean;
+  blocker?: boolean;
+  bugfix?: boolean;
 }
 
 export interface AssignmentResponse {
@@ -117,4 +149,26 @@ export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
   IN_REVIEW: "In Review",
   DONE: "Done",
   CLOSED: "Closed",
+};
+
+export const TICKET_TYPE_LABELS: Record<TicketType, string> = {
+  bug: "Bug",
+  feature: "Feature",
+  improvement: "Improvement",
+  investigation: "Investigation",
+  discovery: "Discovery",
+  reporting: "Reporting",
+  testing: "Testing",
+  analysis: "Analysis",
+  other: "Other",
+};
+
+export const TICKET_SPEC_LABELS: Record<TicketSpec, string> = {
+  backend: "Backend",
+  frontend: "Frontend",
+  architecture: "Architecture",
+  testing: "Testing",
+  business_analysis: "Business Analysis",
+  product_management: "Product Management",
+  other: "Other",
 };

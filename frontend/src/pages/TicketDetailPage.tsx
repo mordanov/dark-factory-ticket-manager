@@ -11,13 +11,16 @@ import {
   createFollowUp,
   assignUser,
   unassignUser,
+  addTag,
+  removeTag,
 } from "../api/tickets";
 import { listUsers } from "../api/users";
 import { AssigneeProgressList } from "../components/tickets/AssigneeProgressList";
 import { StatusTransitionButton } from "../components/tickets/StatusTransitionButton";
 import { TicketEventHistory } from "../components/tickets/TicketEventHistory";
-import { TicketForm } from "../components/tickets/TicketForm";
-import { TICKET_STATUS_LABELS } from "../types";
+import { TicketForm, type TicketFormValues } from "../components/tickets/TicketForm";
+import { TagInput } from "../components/tickets/TagInput";
+import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS, TICKET_SPEC_LABELS } from "../types";
 import type { TicketResponse } from "../types";
 import { useAuthStore } from "../store/auth";
 
@@ -34,6 +37,8 @@ export function TicketDetailPage() {
   const [progressLoading, setProgressLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
+  const [tagError, setTagError] = useState<string | null>(null);
+  const [pendingTags, setPendingTags] = useState<string[] | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
 
@@ -60,8 +65,16 @@ export function TicketDetailPage() {
     queryClient.invalidateQueries({ queryKey: ["ticket-events", ticketId] });
   }
 
-  async function handleEdit(values: { title: string; description: string | null }) {
-    const updated = await updateTicket(ticketId!, values);
+  async function handleEdit(values: TicketFormValues) {
+    const updated = await updateTicket(ticketId!, {
+      title: values.title,
+      description: values.description,
+      ticket_type: values.ticket_type,
+      ticket_spec: values.ticket_spec ?? undefined,
+      urgent: values.urgent,
+      blocker: values.blocker,
+      bugfix: values.bugfix,
+    });
     queryClient.setQueryData(["ticket", ticketId], updated);
     queryClient.invalidateQueries({ queryKey: ["ticket-events", ticketId] });
     setIsEditing(false);
@@ -86,10 +99,7 @@ export function TicketDetailPage() {
   }
 
   async function handleSubmitProgress() {
-    if (!progressInput.trim()) {
-      setProgressError("Progress content is required.");
-      return;
-    }
+    if (!progressInput.trim()) { setProgressError("Progress content is required."); return; }
     setProgressError(null);
     setProgressLoading(true);
     try {
@@ -104,8 +114,17 @@ export function TicketDetailPage() {
     }
   }
 
-  async function handleCreateFollowUp(values: { title: string; description: string | null }) {
-    const created = await createFollowUp(ticketId!, values);
+  async function handleCreateFollowUp(values: TicketFormValues) {
+    const created = await createFollowUp(ticketId!, {
+      title: values.title,
+      description: values.description,
+      ticket_type: values.ticket_type,
+      ticket_spec: values.ticket_spec!,
+      urgent: values.urgent,
+      blocker: values.blocker,
+      bugfix: values.bugfix,
+      tags: values.tags,
+    });
     setShowFollowUpForm(false);
     navigate(`/tickets/${created.id}`);
   }
@@ -145,6 +164,28 @@ export function TicketDetailPage() {
     }
   }
 
+  async function handleTagChange(newTags: string[]) {
+    if (!ticket) return;
+    setTagError(null);
+    const currentNames = ticket.tags.map((t) => t.name);
+    const added = newTags.filter((n) => !currentNames.includes(n));
+    const removed = currentNames.filter((n) => !newTags.includes(n));
+
+    try {
+      let updated = ticket;
+      for (const name of added) {
+        updated = await addTag(ticketId!, name);
+      }
+      for (const name of removed) {
+        updated = await removeTag(ticketId!, name);
+      }
+      queryClient.setQueryData(["ticket", ticketId], updated);
+      setPendingTags(null);
+    } catch {
+      setTagError("Failed to update tags.");
+    }
+  }
+
   if (!ticketId) return null;
   if (isLoading) return <div style={page}><p>Loading…</p></div>;
   if (isError || !ticket) return <div style={page}><p style={{ color: "#c0392b" }}>Ticket not found.</p></div>;
@@ -153,6 +194,13 @@ export function TicketDetailPage() {
   const isAssignee = ticket.assignees.some((a) => a.user_id === currentUser?.id);
   const isAdmin = currentUser?.role === "administrator";
   const alreadyAssigned = ticket.assignees.some((a) => a.user_id === currentUser?.id);
+  const currentTagNames = (pendingTags ?? ticket.tags.map((t) => t.name));
+
+  const activeFlags = [
+    ticket.urgent && { label: "URGENT", color: "#e74c3c", bg: "#fdecea" },
+    ticket.blocker && { label: "BLOCKER", color: "#c0392b", bg: "#fce8e8" },
+    ticket.bugfix && { label: "BUGFIX", color: "#8e44ad", bg: "#f3e8fd" },
+  ].filter(Boolean) as { label: string; color: string; bg: string }[];
 
   return (
     <div style={page}>
@@ -169,7 +217,16 @@ export function TicketDetailPage() {
             <>
               <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Edit Ticket</h2>
               <TicketForm
-                initialValues={{ title: ticket.title, description: ticket.description }}
+                initialValues={{
+                  title: ticket.title,
+                  description: ticket.description,
+                  ticket_type: ticket.ticket_type,
+                  ticket_spec: ticket.ticket_spec ?? undefined,
+                  urgent: ticket.urgent,
+                  blocker: ticket.blocker,
+                  bugfix: ticket.bugfix,
+                }}
+                showTags={false}
                 onSubmit={handleEdit}
                 onCancel={() => setIsEditing(false)}
                 submitLabel="Save Changes"
@@ -177,18 +234,42 @@ export function TicketDetailPage() {
             </>
           ) : (
             <>
+              {/* Title row */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
-                <h1 style={{ margin: 0, fontSize: "1.25rem", flex: 1 }}>{ticket.title}</h1>
+                <div style={{ flex: 1 }}>
+                  {ticket.display_id && (
+                    <div style={{ fontFamily: "monospace", fontSize: "0.78rem", fontWeight: 700, color: "#3355cc", marginBottom: "0.3rem" }}>
+                      {ticket.display_id}
+                    </div>
+                  )}
+                  <h1 style={{ margin: 0, fontSize: "1.25rem" }}>{ticket.title}</h1>
+                </div>
                 <span style={{ ...statusBadge, background: statusColor(ticket.status) }}>
                   {TICKET_STATUS_LABELS[ticket.status]}
                 </span>
               </div>
+
+              {/* Type + Spec */}
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
+                <span style={metaChip}>{TICKET_TYPE_LABELS[ticket.ticket_type]}</span>
+                {ticket.ticket_spec && (
+                  <span style={{ ...metaChip, color: "#2c7a4b", background: "#eafaf1", border: "1px solid #b7e4c7" }}>
+                    {TICKET_SPEC_LABELS[ticket.ticket_spec]}
+                  </span>
+                )}
+                {activeFlags.map((f) => (
+                  <span key={f.label} style={{ ...metaChip, color: f.color, background: f.bg, fontWeight: 700, border: `1px solid ${f.color}` }}>
+                    {f.label}
+                  </span>
+                ))}
+              </div>
+
               {ticket.description && (
                 <p style={{ marginTop: "0.75rem", color: "#444", lineHeight: 1.5 }}>
                   {ticket.description}
                 </p>
               )}
-              <div style={{ marginTop: "0.75rem", fontSize: "0.8rem", color: "#888" }}>
+              <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "#888" }}>
                 Created by {ticket.created_by.email}
               </div>
               {ticket.parent_ticket_id && (
@@ -227,6 +308,19 @@ export function TicketDetailPage() {
           </div>
         )}
 
+        {/* Tags */}
+        <div style={section}>
+          <h2 style={sectionTitle}>Tags</h2>
+          <TagInput
+            value={currentTagNames}
+            onChange={(newTags) => {
+              setPendingTags(newTags);
+              handleTagChange(newTags);
+            }}
+          />
+          {tagError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", marginTop: "0.5rem" }}>{tagError}</p>}
+        </div>
+
         {/* Assignees and progress */}
         <div style={section}>
           <h2 style={sectionTitle}>Assignees & Progress</h2>
@@ -237,23 +331,16 @@ export function TicketDetailPage() {
             isAdmin={isAdmin}
             onUnassign={handleUnassign}
           />
-
-          {/* Assignment actions */}
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
             {!alreadyAssigned && (
-              <button onClick={handleAssignMe} style={secondaryBtn}>
-                + Assign me
-              </button>
+              <button onClick={handleAssignMe} style={secondaryBtn}>+ Assign me</button>
             )}
             {isAdmin && (
-              <button onClick={() => setShowAssignModal(true)} style={secondaryBtn}>
-                + Assign user
-              </button>
+              <button onClick={() => setShowAssignModal(true)} style={secondaryBtn}>+ Assign user</button>
             )}
           </div>
           {assignError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", marginTop: "0.5rem" }}>{assignError}</p>}
 
-          {/* Admin assign-user modal */}
           {showAssignModal && (
             <AdminAssignModal
               ticketId={ticketId}
@@ -381,6 +468,14 @@ const statusBadge: React.CSSProperties = {
   fontSize: "0.8rem",
   fontWeight: 600,
   whiteSpace: "nowrap",
+};
+const metaChip: React.CSSProperties = {
+  fontSize: "0.75rem",
+  fontWeight: 600,
+  color: "#555",
+  background: "#f4f4f4",
+  borderRadius: 4,
+  padding: "0.15rem 0.5rem",
 };
 const secondaryBtn: React.CSSProperties = {
   padding: "0.35rem 0.75rem",

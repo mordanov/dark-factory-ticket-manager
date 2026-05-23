@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { TicketResponse } from "../../types";
+import { TICKET_TYPE_LABELS } from "../../types";
 
 interface Props {
   ticket: TicketResponse;
@@ -8,6 +9,12 @@ interface Props {
 export function KanbanCard({ ticket }: Props) {
   const pendingAssignees = ticket.assignees.filter((a) => !a.has_progress_update);
 
+  const activeFlags = [
+    ticket.urgent && { label: "U", title: "Urgent", color: "#e74c3c" },
+    ticket.blocker && { label: "B", title: "Blocker", color: "#c0392b" },
+    ticket.bugfix && { label: "F", title: "Bugfix", color: "#8e44ad" },
+  ].filter(Boolean) as { label: string; title: string; color: string }[];
+
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("ticketId", ticket.id);
     e.dataTransfer.setData("fromStatus", ticket.status);
@@ -15,14 +22,26 @@ export function KanbanCard({ ticket }: Props) {
   }
 
   return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      style={card}
-    >
+    <div draggable onDragStart={handleDragStart} style={card}>
+      {/* Header row */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+        {ticket.display_id && (
+          <span style={idLabel}>{ticket.display_id}</span>
+        )}
+        <div style={{ display: "flex", gap: 3, marginLeft: "auto" }}>
+          {activeFlags.map((f) => (
+            <span key={f.label} title={f.title} style={{ ...flagDot, background: f.color }}>{f.label}</span>
+          ))}
+        </div>
+      </div>
+
       <Link to={`/tickets/${ticket.id}`} style={titleLink}>
         {ticket.title}
       </Link>
+
+      <div style={{ fontSize: "0.7rem", color: "#888", marginTop: 4 }}>
+        {TICKET_TYPE_LABELS[ticket.ticket_type]}
+      </div>
 
       {ticket.assignees.length > 0 && (
         <div style={avatarRow}>
@@ -34,14 +53,24 @@ export function KanbanCard({ ticket }: Props) {
         </div>
       )}
 
-      {pendingAssignees.length > 0 && (
-        <div style={pendingBadge} title={`Awaiting progress from: ${pendingAssignees.map((a) => a.email).join(", ")}`}>
-          ⚠ {pendingAssignees.length} pending update{pendingAssignees.length > 1 ? "s" : ""}
+      {ticket.tags.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 6 }}>
+          {ticket.tags.slice(0, 3).map((t) => (
+            <span key={t.id} style={tagPill}>{t.name}</span>
+          ))}
+          {ticket.tags.length > 3 && (
+            <span style={{ ...tagPill, color: "#888", background: "#f0f0f0" }}>+{ticket.tags.length - 3}</span>
+          )}
         </div>
       )}
 
-      {(ticket.follow_up_count ?? 0) > 0 && (
-        <div style={followUpBadge}>↳ {ticket.follow_up_count} follow-up{ticket.follow_up_count !== 1 ? "s" : ""}</div>
+      {pendingAssignees.length > 0 && (
+        <div
+          style={pendingBadge}
+          title={`Awaiting progress from: ${pendingAssignees.map((a) => a.email).join(", ")}`}
+        >
+          ⚠ {pendingAssignees.length} pending
+        </div>
       )}
     </div>
   );
@@ -57,7 +86,23 @@ const card: React.CSSProperties = {
   boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
   userSelect: "none",
 };
-
+const idLabel: React.CSSProperties = {
+  fontFamily: "monospace",
+  fontSize: "0.68rem",
+  color: "#3355cc",
+  fontWeight: 700,
+};
+const flagDot: React.CSSProperties = {
+  width: 16,
+  height: 16,
+  borderRadius: "50%",
+  color: "#fff",
+  fontSize: "0.6rem",
+  fontWeight: 900,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+} as React.CSSProperties;
 const titleLink: React.CSSProperties = {
   fontWeight: 600,
   color: "#2c3e50",
@@ -66,14 +111,12 @@ const titleLink: React.CSSProperties = {
   display: "block",
   lineHeight: 1.4,
 };
-
 const avatarRow: React.CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
   gap: 4,
   marginTop: 8,
 };
-
 const avatar: React.CSSProperties = {
   width: 22,
   height: 22,
@@ -87,7 +130,14 @@ const avatar: React.CSSProperties = {
   justifyContent: "center",
   cursor: "default",
 } as React.CSSProperties;
-
+const tagPill: React.CSSProperties = {
+  background: "#e8f0fe",
+  color: "#1a5276",
+  borderRadius: 8,
+  padding: "1px 6px",
+  fontSize: "0.68rem",
+  fontWeight: 500,
+};
 const pendingBadge: React.CSSProperties = {
   marginTop: 6,
   fontSize: "0.72rem",
@@ -97,10 +147,4 @@ const pendingBadge: React.CSSProperties = {
   borderRadius: 4,
   padding: "2px 6px",
   display: "inline-block",
-};
-
-const followUpBadge: React.CSSProperties = {
-  marginTop: 4,
-  fontSize: "0.72rem",
-  color: "#666",
 };

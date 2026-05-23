@@ -8,8 +8,35 @@ from sqlalchemy.orm import selectinload
 from src.models.ticket import Ticket, TicketStatus
 from src.models.ticket_assignment import TicketAssignment
 from src.models.user import User
-from src.schemas.ticket import AssigneeSummary, TicketCreate, TicketResponse, TicketUpdate
+from src.schemas.ticket import (
+    AssigneeSummary,
+    FollowUpTicketCreate,
+    TagResponse,
+    TicketCreate,
+    TicketResponse,
+    TicketUpdate,
+)
 from src.services.event_service import emit_event
+
+
+async def _resolve_tags(session: AsyncSession, tag_names: list[str]) -> list:
+    from src.models.tag import Tag
+
+    result = []
+    seen: set[str] = set()
+    for raw_name in tag_names:
+        name = raw_name.strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        existing = await session.execute(select(Tag).where(Tag.name == name))
+        tag = existing.scalar_one_or_none()
+        if tag is None:
+            tag = Tag(name=name)
+            session.add(tag)
+            await session.flush()
+        result.append(tag)
+    return result
 
 
 async def _load_ticket_response(session: AsyncSession, ticket: Ticket) -> TicketResponse:
@@ -20,6 +47,8 @@ async def _load_ticket_response(session: AsyncSession, ticket: Ticket) -> Ticket
             selectinload(Ticket.creator),
             selectinload(Ticket.assignments).selectinload(TicketAssignment.user),
             selectinload(Ticket.progress_updates),
+            selectinload(Ticket.tags),
+            selectinload(Ticket.project),
         )
     )
     result = await session.execute(stmt)
@@ -43,19 +72,39 @@ async def _load_ticket_response(session: AsyncSession, ticket: Ticket) -> Ticket
     )
     follow_up_count = follow_up_count_result.scalar() or 0
 
+    display_id: str | None = None
+    if t.project and t.project.code and t.number is not None:
+        display_id = f"{t.project.code}-{t.number:04d}"
+
     return TicketResponse(
         id=t.id,
+        display_id=display_id,
+        number=t.number,
         project_id=t.project_id,
         parent_ticket_id=t.parent_ticket_id,
         title=t.title,
         description=t.description,
         status=t.status,
+        ticket_type=t.ticket_type,
+        ticket_spec=t.ticket_spec,
+        urgent=t.urgent,
+        blocker=t.blocker,
+        bugfix=t.bugfix,
         created_by=t.creator,  # type: ignore[arg-type]
         created_at=t.created_at,
         updated_at=t.updated_at,
         assignees=assignees,
         follow_up_count=follow_up_count,
+        tags=[TagResponse(id=tag.id, name=tag.name) for tag in t.tags],
     )
+
+
+async def _next_ticket_number(session: AsyncSession, project_id: UUID) -> int:
+    result = await session.execute(
+        select(func.coalesce(func.max(Ticket.number), 0) + 1)
+        .where(Ticket.project_id == project_id)
+    )
+    return result.scalar() or 1
 
 
 async def create_ticket(
@@ -70,15 +119,26 @@ async def create_ticket(
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
+    number = await _next_ticket_number(session, project_id)
+
     ticket = Ticket(
         project_id=project_id,
         title=data.title,
         description=data.description,
         created_by=actor.id,
         status=TicketStatus.OPEN,
+        number=number,
+        ticket_type=data.ticket_type,
+        ticket_spec=data.ticket_spec,
+        urgent=data.urgent,
+        blocker=data.blocker,
+        bugfix=data.bugfix,
     )
     session.add(ticket)
     await session.flush()
+
+    if data.tags:
+        ticket.tags = await _resolve_tags(session, data.tags)
 
     await emit_event(
         session,
@@ -95,12 +155,14 @@ async def create_ticket(
 async def create_follow_up(
     session: AsyncSession,
     parent_ticket_id: UUID,
-    data: TicketCreate,
+    data: FollowUpTicketCreate,
     actor: User,
 ) -> TicketResponse:
     parent = await session.get(Ticket, parent_ticket_id)
     if parent is None or parent.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parent ticket not found")
+
+    number = await _next_ticket_number(session, parent.project_id)
 
     ticket = Ticket(
         project_id=parent.project_id,
@@ -109,9 +171,18 @@ async def create_follow_up(
         description=data.description,
         created_by=actor.id,
         status=TicketStatus.OPEN,
+        number=number,
+        ticket_type=data.ticket_type,
+        ticket_spec=data.ticket_spec,
+        urgent=data.urgent,
+        blocker=data.blocker,
+        bugfix=data.bugfix,
     )
     session.add(ticket)
     await session.flush()
+
+    if data.tags:
+        ticket.tags = await _resolve_tags(session, data.tags)
 
     await emit_event(
         session,
@@ -143,6 +214,16 @@ async def update_ticket(
         ticket.title = data.title
     if data.description is not None:
         ticket.description = data.description
+    if data.ticket_type is not None:
+        ticket.ticket_type = data.ticket_type
+    if data.ticket_spec is not None:
+        ticket.ticket_spec = data.ticket_spec
+    if data.urgent is not None:
+        ticket.urgent = data.urgent
+    if data.blocker is not None:
+        ticket.blocker = data.blocker
+    if data.bugfix is not None:
+        ticket.bugfix = data.bugfix
 
     await emit_event(
         session,
@@ -233,9 +314,61 @@ async def list_tickets(
     count_result = await session.execute(select(func.count()).select_from(base_stmt.subquery()))
     total = count_result.scalar() or 0
 
-    paginated = base_stmt.offset((page - 1) * page_size).limit(page_size)
+    paginated = base_stmt.order_by(Ticket.number.asc().nulls_last()).offset((page - 1) * page_size).limit(page_size)
     tickets_result = await session.execute(paginated)
     tickets = tickets_result.scalars().all()
 
     responses = [await _load_ticket_response(session, t) for t in tickets]
     return responses, total
+
+
+async def add_tag(
+    session: AsyncSession,
+    ticket_id: UUID,
+    tag_name: str,
+    actor: User,
+) -> TicketResponse:
+    from src.models.tag import Tag
+
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None or ticket.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+
+    await session.refresh(ticket, ["tags"])
+    if len(ticket.tags) >= 10:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Maximum 10 tags per ticket")
+
+    existing = await session.execute(select(Tag).where(Tag.name == tag_name.strip()))
+    tag = existing.scalar_one_or_none()
+    if tag is None:
+        tag = Tag(name=tag_name.strip())
+        session.add(tag)
+        await session.flush()
+
+    if tag not in ticket.tags:
+        ticket.tags.append(tag)
+        await session.commit()
+
+    return await _load_ticket_response(session, ticket)
+
+
+async def remove_tag(
+    session: AsyncSession,
+    ticket_id: UUID,
+    tag_name: str,
+    actor: User,
+) -> TicketResponse:
+    from src.models.tag import Tag
+
+    ticket = await session.get(Ticket, ticket_id)
+    if ticket is None or ticket.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+
+    await session.refresh(ticket, ["tags"])
+    existing = await session.execute(select(Tag).where(Tag.name == tag_name))
+    tag = existing.scalar_one_or_none()
+    if tag and tag in ticket.tags:
+        ticket.tags.remove(tag)
+        await session.commit()
+
+    return await _load_ticket_response(session, ticket)

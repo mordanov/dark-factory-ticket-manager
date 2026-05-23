@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProjectTicketList } from "../components/projects/ProjectTicketList";
 import { KanbanBoard } from "../components/projects/KanbanBoard";
-import { TicketForm } from "../components/tickets/TicketForm";
+import { TicketForm, type TicketFormValues } from "../components/tickets/TicketForm";
 import { createTicket } from "../api/tickets";
 import { listProjects } from "../api/projects";
 
@@ -22,8 +22,17 @@ export function ProjectPage() {
 
   const project = projects?.find((p) => p.id === projectId);
 
-  async function handleCreate(values: { title: string; description: string | null }) {
-    await createTicket(projectId!, values);
+  async function handleCreate(values: TicketFormValues) {
+    await createTicket(projectId!, {
+      title: values.title,
+      description: values.description,
+      ticket_type: values.ticket_type,
+      ticket_spec: values.ticket_spec!,
+      urgent: values.urgent,
+      blocker: values.blocker,
+      bugfix: values.bugfix,
+      tags: values.tags,
+    });
     await queryClient.invalidateQueries({ queryKey: ["tickets", projectId] });
     setShowCreate(false);
   }

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from src.api.v1 import assignments, auth, events, progress, projects, tickets, transitions, users
+from src.api.v1 import assignments, auth, events, progress, projects, tags, tickets, transitions, users
 
 router = APIRouter(prefix="/api/v1")
 
@@ -12,3 +12,4 @@ router.include_router(assignments.router)
 router.include_router(progress.router)
 router.include_router(transitions.router)
 router.include_router(events.router)
+router.include_router(tags.router)
