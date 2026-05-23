@@ -6,7 +6,7 @@ Create Date: 2026-05-23
 """
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ENUM, JSONB, UUID
 
 revision = "007"
 down_revision = "006"
@@ -23,7 +23,7 @@ def upgrade() -> None:
         sa.Column("actor_id", UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
         sa.Column(
             "actor_role",
-            sa.Enum("administrator", "user", name="user_role", create_type=False),
+            ENUM("administrator", "user", name="user_role", create_type=False),
             nullable=False,
         ),
         sa.Column("prev_state", JSONB, nullable=True),

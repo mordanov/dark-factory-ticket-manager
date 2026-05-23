@@ -6,7 +6,7 @@ Create Date: 2026-05-23
 """
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ENUM, UUID
 
 revision = "002"
 down_revision = "001"
@@ -22,7 +22,7 @@ def upgrade() -> None:
         sa.Column("hashed_password", sa.String(255), nullable=False),
         sa.Column(
             "role",
-            sa.Enum("administrator", "user", name="user_role", create_type=False),
+            ENUM("administrator", "user", name="user_role", create_type=False),
             nullable=False,
             server_default="user",
         ),

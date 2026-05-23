@@ -6,7 +6,7 @@ Create Date: 2026-05-23
 """
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ENUM, UUID
 
 revision = "004"
 down_revision = "003"
@@ -24,7 +24,7 @@ def upgrade() -> None:
         sa.Column("description", sa.Text, nullable=True),
         sa.Column(
             "status",
-            sa.Enum("OPEN", "IN_PROGRESS", "IN_REVIEW", "DONE", "CLOSED", name="ticket_status", create_type=False),
+            ENUM("OPEN", "IN_PROGRESS", "IN_REVIEW", "DONE", "CLOSED", name="ticket_status", create_type=False),
             nullable=False,
             server_default="OPEN",
         ),

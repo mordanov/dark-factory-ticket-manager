@@ -3,7 +3,7 @@ import type { FilterState } from "../common/FilterBar";
 import { FilterBar } from "../common/FilterBar";
 import { TicketCard } from "../tickets/TicketCard";
 import { listTickets } from "../../api/projects";
-import type { AssigneeSummary, TicketStatus } from "../../types";
+import type { AssigneeSummary } from "../../types";
 import { useState, useMemo } from "react";
 
 interface ProjectTicketListProps {
