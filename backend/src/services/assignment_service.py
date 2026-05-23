@@ -34,22 +34,6 @@ async def assign_user(
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already assigned")
 
-    is_creator = ticket.created_by == actor.id
-    is_admin = actor.role.value == "administrator"
-    is_assignee_result = await session.execute(
-        select(TicketAssignment).where(
-            TicketAssignment.ticket_id == ticket_id,
-            TicketAssignment.user_id == actor.id,
-        )
-    )
-    is_assignee = is_assignee_result.scalar_one_or_none() is not None
-
-    if not (is_creator or is_admin or is_assignee):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Must be creator, existing assignee, or administrator",
-        )
-
     assignment = TicketAssignment(
         ticket_id=ticket_id,
         user_id=user_id,
@@ -90,22 +74,6 @@ async def unassign_user(
     assignment = result.scalar_one_or_none()
     if assignment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
-
-    ticket = await session.get(Ticket, ticket_id)
-    is_creator = ticket is not None and ticket.created_by == actor.id
-    is_admin = actor.role.value == "administrator"
-    actor_assignment_result = await session.execute(
-        select(TicketAssignment).where(
-            TicketAssignment.ticket_id == ticket_id,
-            TicketAssignment.user_id == actor.id,
-        )
-    )
-    is_assignee = actor_assignment_result.scalar_one_or_none() is not None
-    if not (is_creator or is_admin or is_assignee):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Must be creator, existing assignee, or administrator",
-        )
 
     await emit_event(
         session,

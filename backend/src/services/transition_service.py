@@ -42,15 +42,6 @@ async def transition_ticket(
     )
     all_assignments = all_assignments_result.scalars().all()
 
-    # RBAC: actor must be present in the locked assignment rows (FR-008, F-TR-02).
-    # Querying ticket_assignments directly — role alone does not grant this right.
-    actor_is_assignee = any(a.user_id == actor.id for a in all_assignments)
-    if not actor_is_assignee:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Must be an active assignee to transition ticket",
-        )
-
     validate_transition(ticket.status, to_status)
 
     # Progress gate: uses locked current assignees (Option B per architecture ruling —

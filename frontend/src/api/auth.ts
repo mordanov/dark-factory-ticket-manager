@@ -9,3 +9,10 @@ export async function login(email: string, password: string): Promise<TokenRespo
 export async function logout(refreshToken: string): Promise<void> {
   await apiClient.post("/auth/logout", { refresh_token: refreshToken });
 }
+
+export async function refresh(refreshToken: string): Promise<string> {
+  const { data } = await apiClient.post<{ access_token: string }>("/auth/refresh", {
+    refresh_token: refreshToken,
+  });
+  return data.access_token;
+}

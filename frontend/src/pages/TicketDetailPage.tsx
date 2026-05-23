@@ -9,7 +9,10 @@ import {
   deleteTicket,
   updateTicket,
   createFollowUp,
+  assignUser,
+  unassignUser,
 } from "../api/tickets";
+import { listUsers } from "../api/users";
 import { AssigneeProgressList } from "../components/tickets/AssigneeProgressList";
 import { StatusTransitionButton } from "../components/tickets/StatusTransitionButton";
 import { TicketEventHistory } from "../components/tickets/TicketEventHistory";
@@ -30,6 +33,9 @@ export function TicketDetailPage() {
   const [progressError, setProgressError] = useState<string | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   const { data: ticket, isLoading, isError } = useQuery({
     queryKey: ["ticket", ticketId],
@@ -104,12 +110,49 @@ export function TicketDetailPage() {
     navigate(`/tickets/${created.id}`);
   }
 
+  async function handleAssignMe() {
+    setAssignError(null);
+    try {
+      await assignUser(ticketId!, currentUser!.id);
+      await queryClient.invalidateQueries({ queryKey: ["ticket", ticketId] });
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setAssignError(e.response?.data?.detail ?? "Failed to assign.");
+    }
+  }
+
+  async function handleUnassign(userId: string) {
+    setAssignError(null);
+    try {
+      await unassignUser(ticketId!, userId);
+      await queryClient.invalidateQueries({ queryKey: ["ticket", ticketId] });
+    } catch {
+      setAssignError("Failed to remove assignee.");
+    }
+  }
+
+  async function handleAssignUser() {
+    if (!selectedUserId) return;
+    setAssignError(null);
+    try {
+      await assignUser(ticketId!, selectedUserId);
+      await queryClient.invalidateQueries({ queryKey: ["ticket", ticketId] });
+      setShowAssignModal(false);
+      setSelectedUserId("");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setAssignError(e.response?.data?.detail ?? "Failed to assign user.");
+    }
+  }
+
   if (!ticketId) return null;
   if (isLoading) return <div style={page}><p>Loading…</p></div>;
   if (isError || !ticket) return <div style={page}><p style={{ color: "#c0392b" }}>Ticket not found.</p></div>;
 
   const isCreator = currentUser?.id === ticket.created_by.id;
   const isAssignee = ticket.assignees.some((a) => a.user_id === currentUser?.id);
+  const isAdmin = currentUser?.role === "administrator";
+  const alreadyAssigned = ticket.assignees.some((a) => a.user_id === currentUser?.id);
 
   return (
     <div style={page}>
@@ -190,7 +233,38 @@ export function TicketDetailPage() {
           <AssigneeProgressList
             assignees={ticket.assignees}
             progressItems={progressData?.items ?? []}
+            currentUserId={currentUser?.id}
+            isAdmin={isAdmin}
+            onUnassign={handleUnassign}
           />
+
+          {/* Assignment actions */}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+            {!alreadyAssigned && (
+              <button onClick={handleAssignMe} style={secondaryBtn}>
+                + Assign me
+              </button>
+            )}
+            {isAdmin && (
+              <button onClick={() => setShowAssignModal(true)} style={secondaryBtn}>
+                + Assign user
+              </button>
+            )}
+          </div>
+          {assignError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", marginTop: "0.5rem" }}>{assignError}</p>}
+
+          {/* Admin assign-user modal */}
+          {showAssignModal && (
+            <AdminAssignModal
+              ticketId={ticketId}
+              existingAssigneeIds={ticket.assignees.map((a) => a.user_id)}
+              onAssign={handleAssignUser}
+              onClose={() => { setShowAssignModal(false); setSelectedUserId(""); setAssignError(null); }}
+              selectedUserId={selectedUserId}
+              onSelectUser={setSelectedUserId}
+            />
+          )}
+
           {isAssignee && (
             <div style={{ marginTop: "1rem" }}>
               <label htmlFor="progress-input" style={{ display: "block", fontWeight: 500, fontSize: "0.875rem", marginBottom: "0.25rem" }}>
@@ -225,6 +299,55 @@ export function TicketDetailPage() {
           <TicketEventHistory events={eventsData?.items ?? []} />
         </div>
       </main>
+    </div>
+  );
+}
+
+// ── Admin assign-user modal ──────────────────────────────────────────────────
+interface AdminAssignModalProps {
+  ticketId: string;
+  existingAssigneeIds: string[];
+  selectedUserId: string;
+  onSelectUser: (id: string) => void;
+  onAssign: () => void;
+  onClose: () => void;
+}
+
+function AdminAssignModal({ existingAssigneeIds, selectedUserId, onSelectUser, onAssign, onClose }: AdminAssignModalProps) {
+  const { data: users, isLoading } = useQuery({
+    queryKey: ["users"],
+    queryFn: listUsers,
+  });
+
+  const available = (users ?? []).filter((u) => !existingAssigneeIds.includes(u.id));
+
+  return (
+    <div style={modalOverlay} onClick={onClose}>
+      <div style={modalBox} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Assign user</h3>
+        {isLoading ? (
+          <p style={{ color: "#888", fontSize: "0.875rem" }}>Loading users…</p>
+        ) : available.length === 0 ? (
+          <p style={{ color: "#888", fontSize: "0.875rem" }}>All users are already assigned.</p>
+        ) : (
+          <>
+            <select
+              value={selectedUserId}
+              onChange={(e) => onSelectUser(e.target.value)}
+              style={{ width: "100%", padding: "0.4rem 0.5rem", border: "1px solid #ccc", borderRadius: 4, fontSize: "0.875rem", marginBottom: "0.75rem" }}
+            >
+              <option value="">— select a user —</option>
+              {available.map((u) => (
+                <option key={u.id} value={u.id}>{u.email} ({u.role})</option>
+              ))}
+            </select>
+            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+              <button onClick={onClose} style={secondaryBtn}>Cancel</button>
+              <button onClick={onAssign} disabled={!selectedUserId} style={submitBtn}>Assign</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -281,4 +404,21 @@ const submitBtn: React.CSSProperties = {
   fontWeight: 600,
   fontSize: "0.875rem",
   cursor: "pointer",
+};
+const modalOverlay: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.4)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 1000,
+};
+const modalBox: React.CSSProperties = {
+  background: "#fff",
+  borderRadius: 8,
+  padding: "1.5rem",
+  width: "100%",
+  maxWidth: 420,
+  boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
 };

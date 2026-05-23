@@ -2,13 +2,17 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProjectTicketList } from "../components/projects/ProjectTicketList";
+import { KanbanBoard } from "../components/projects/KanbanBoard";
 import { TicketForm } from "../components/tickets/TicketForm";
 import { createTicket } from "../api/tickets";
 import { listProjects } from "../api/projects";
 
+type View = "list" | "board";
+
 export function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const [showCreate, setShowCreate] = useState(false);
+  const [view, setView] = useState<View>("list");
   const queryClient = useQueryClient();
 
   const { data: projects } = useQuery({
@@ -38,12 +42,28 @@ export function ProjectPage() {
             {project?.name ?? "Project"}
           </h1>
         </div>
-        <button onClick={() => setShowCreate((v) => !v)} style={createBtn}>
-          {showCreate ? "Cancel" : "+ New Ticket"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={viewToggle}>
+            <button
+              onClick={() => setView("list")}
+              style={{ ...viewBtn, ...(view === "list" ? viewBtnActive : {}) }}
+            >
+              ☰ List
+            </button>
+            <button
+              onClick={() => setView("board")}
+              style={{ ...viewBtn, ...(view === "board" ? viewBtnActive : {}) }}
+            >
+              ⊞ Board
+            </button>
+          </div>
+          <button onClick={() => setShowCreate((v) => !v)} style={createBtn}>
+            {showCreate ? "Cancel" : "+ New Ticket"}
+          </button>
+        </div>
       </header>
 
-      <main style={main}>
+      <main style={view === "board" ? mainBoard : main}>
         {showCreate && (
           <div style={formCard}>
             <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Create Ticket</h2>
@@ -54,7 +74,11 @@ export function ProjectPage() {
             />
           </div>
         )}
-        <ProjectTicketList projectId={projectId} />
+        {view === "list" ? (
+          <ProjectTicketList projectId={projectId} />
+        ) : (
+          <KanbanBoard projectId={projectId} />
+        )}
       </main>
     </div>
   );
@@ -70,6 +94,7 @@ const header: React.CSSProperties = {
   alignItems: "center",
 };
 const main: React.CSSProperties = { maxWidth: 900, margin: "0 auto", padding: "1.5rem" };
+const mainBoard: React.CSSProperties = { padding: "1.5rem" };
 const formCard: React.CSSProperties = {
   background: "#fff",
   border: "1px solid #e0e0e0",
@@ -86,4 +111,24 @@ const createBtn: React.CSSProperties = {
   fontWeight: 600,
   fontSize: "0.875rem",
   cursor: "pointer",
+};
+const viewToggle: React.CSSProperties = {
+  display: "flex",
+  border: "1px solid #d0d0d0",
+  borderRadius: 4,
+  overflow: "hidden",
+};
+const viewBtn: React.CSSProperties = {
+  padding: "0.3rem 0.75rem",
+  background: "#fff",
+  border: "none",
+  borderRight: "1px solid #d0d0d0",
+  cursor: "pointer",
+  fontSize: "0.8rem",
+  color: "#555",
+};
+const viewBtnActive: React.CSSProperties = {
+  background: "#eef4ff",
+  color: "#0066cc",
+  fontWeight: 600,
 };
