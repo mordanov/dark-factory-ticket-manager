@@ -66,12 +66,12 @@ class Ticket(Base):
     )
     number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ticket_type: Mapped[TicketType] = mapped_column(
-        Enum(TicketType, name="ticket_type", create_type=False),
+        Enum(TicketType, name="ticket_type", create_type=False, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=TicketType.FEATURE,
     )
     ticket_spec: Mapped[TicketSpec | None] = mapped_column(
-        Enum(TicketSpec, name="ticket_spec", create_type=False),
+        Enum(TicketSpec, name="ticket_spec", create_type=False, values_callable=lambda x: [e.value for e in x]),
         nullable=True,
     )
     urgent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
