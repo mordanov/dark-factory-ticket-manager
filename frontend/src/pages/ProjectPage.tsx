@@ -1,0 +1,143 @@
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ProjectTicketList } from "../components/projects/ProjectTicketList";
+import { KanbanBoard } from "../components/projects/KanbanBoard";
+import { TicketForm, type TicketFormValues } from "../components/tickets/TicketForm";
+import { createTicket } from "../api/tickets";
+import { listProjects } from "../api/projects";
+
+type View = "list" | "board";
+
+export function ProjectPage() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const [showCreate, setShowCreate] = useState(false);
+  const [view, setView] = useState<View>("list");
+  const queryClient = useQueryClient();
+
+  const { data: projects } = useQuery({
+    queryKey: ["projects"],
+    queryFn: listProjects,
+  });
+
+  const project = projects?.find((p) => p.id === projectId);
+
+  async function handleCreate(values: TicketFormValues) {
+    await createTicket(projectId!, {
+      title: values.title,
+      description: values.description,
+      ticket_type: values.ticket_type,
+      ticket_spec: values.ticket_spec!,
+      urgent: values.urgent,
+      blocker: values.blocker,
+      bugfix: values.bugfix,
+      tags: values.tags,
+    });
+    await queryClient.invalidateQueries({ queryKey: ["tickets", projectId] });
+    setShowCreate(false);
+  }
+
+  if (!projectId) return null;
+
+  return (
+    <div style={page}>
+      <header style={header}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <Link to="/projects" style={{ color: "#0066cc", fontSize: "0.875rem" }}>
+            ← Projects
+          </Link>
+          <span style={{ color: "#ccc" }}>/</span>
+          <h1 style={{ margin: 0, fontSize: "1.1rem" }}>
+            {project?.name ?? "Project"}
+          </h1>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={viewToggle}>
+            <button
+              onClick={() => setView("list")}
+              style={{ ...viewBtn, ...(view === "list" ? viewBtnActive : {}) }}
+            >
+              ☰ List
+            </button>
+            <button
+              onClick={() => setView("board")}
+              style={{ ...viewBtn, ...(view === "board" ? viewBtnActive : {}) }}
+            >
+              ⊞ Board
+            </button>
+          </div>
+          <button onClick={() => setShowCreate((v) => !v)} style={createBtn}>
+            {showCreate ? "Cancel" : "+ New Ticket"}
+          </button>
+        </div>
+      </header>
+
+      <main style={view === "board" ? mainBoard : main}>
+        {showCreate && (
+          <div style={formCard}>
+            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Create Ticket</h2>
+            <TicketForm
+              onSubmit={handleCreate}
+              onCancel={() => setShowCreate(false)}
+              submitLabel="Create Ticket"
+            />
+          </div>
+        )}
+        {view === "list" ? (
+          <ProjectTicketList projectId={projectId} />
+        ) : (
+          <KanbanBoard projectId={projectId} />
+        )}
+      </main>
+    </div>
+  );
+}
+
+const page: React.CSSProperties = { minHeight: "100vh", background: "#f5f5f5" };
+const header: React.CSSProperties = {
+  background: "#fff",
+  borderBottom: "1px solid #e0e0e0",
+  padding: "0.75rem 1.5rem",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+const main: React.CSSProperties = { maxWidth: 900, margin: "0 auto", padding: "1.5rem" };
+const mainBoard: React.CSSProperties = { padding: "1.5rem" };
+const formCard: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid #e0e0e0",
+  borderRadius: 6,
+  padding: "1.25rem",
+  marginBottom: "1.25rem",
+};
+const createBtn: React.CSSProperties = {
+  padding: "0.4rem 0.9rem",
+  background: "#0066cc",
+  color: "#fff",
+  border: "none",
+  borderRadius: 4,
+  fontWeight: 600,
+  fontSize: "0.875rem",
+  cursor: "pointer",
+};
+const viewToggle: React.CSSProperties = {
+  display: "flex",
+  border: "1px solid #d0d0d0",
+  borderRadius: 4,
+  overflow: "hidden",
+};
+const viewBtn: React.CSSProperties = {
+  padding: "0.3rem 0.75rem",
+  background: "#fff",
+  border: "none",
+  borderRight: "1px solid #d0d0d0",
+  cursor: "pointer",
+  fontSize: "0.8rem",
+  color: "#555",
+};
+const viewBtnActive: React.CSSProperties = {
+  background: "#eef4ff",
+  color: "#0066cc",
+  fontWeight: 600,
+};

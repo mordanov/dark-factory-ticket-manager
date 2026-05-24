@@ -2,7 +2,7 @@
 # run-agents.sh
 # Launches the full Claude Code brainstorm team (product manager,
 # software-architect, security-architect, frontend, backend, devops,
-# code-reviewer, autotester)
+# code-reviewer, autotester, project-administrator)
 # each in its own terminal window, wired together via brainstorm-mcp.
 #
 # Prerequisites:
@@ -29,6 +29,7 @@ role_to_filename() {
     devops) echo "devops.md" ;;
     code-reviewer) echo "code-reviewer.md" ;;
     autotester) echo "autotester.md" ;;
+    project-administrator) echo "project-administrator.md" ;;
     *) echo "${role}.md" ;;
   esac
 }
@@ -44,6 +45,7 @@ role_dir() {
     devops) echo "./devops" ;;
     code-reviewer) echo "./code-reviewer" ;;
     autotester) echo "./autotester" ;;
+    project-administrator) echo "./project-administrator" ;;
     *) echo "./$role" ;;
   esac
 }
@@ -59,6 +61,7 @@ role_title() {
     devops) echo "DevOps" ;;
     code-reviewer) echo "Code Reviewer" ;;
     autotester) echo "Autotester" ;;
+    project-administrator) echo "Project Administrator" ;;
     *) echo "$role" ;;
   esac
 }
@@ -129,7 +132,7 @@ done
 #   4. Polls for messages and stands by for collaborative work
 
 agent_prompt() {
-  local role="$1"        # product-manager | software-architect | security-architect | frontend | backend | devops | code-reviewer | autotester
+  local role="$1"        # product-manager | software-architect | security-architect | frontend | backend | devops | code-reviewer | autotester | project-administrator
   local project="$2"
   local coordinator="$3" # "true" or "false"
 
@@ -141,6 +144,46 @@ agent_prompt() {
   local mission=""
   if [[ -f "$skillfile" ]]; then
     mission=$(sed -n '/^## Mission$/,/^## /p' "$skillfile" | sed '1d;$d' | head -c 300)
+  fi
+
+  if [[ "$role" == "project-administrator" ]]; then
+    cat <<PROMPT
+You are the Project Administrator agent named "$role" in a multi-agent collaboration.
+
+Your skill description:
+$mission
+
+Your responsibility is to collect and report task-level metrics only. You do not make product, architecture, implementation, or quality decisions.
+
+STEP 1 – Initialise the SQLite metrics database:
+  Run: python project-administrator/agent_metrics.py init
+
+STEP 2 – Join the shared project as the reporting contributor:
+  Call mcp__brainstorm__join_project with:
+    project_id: "$project"
+    agent_name: "$role"
+    role: "contributor"
+
+STEP 3 – Announce yourself:
+  Send a message to the "$project" channel:
+    "Hi team! I'm the Project Administrator. I will collect task metrics, reconcile missing fields, and publish the human-facing HTML report."
+
+STEP 4 – Collect and reconcile:
+  • Poll mcp__brainstorm__receive_messages periodically
+  • Ask each agent to submit a record after every completed task
+  • Verify the SQLite database contains: timestamp, agent name, feature name, short task description, time spent, tokens spent, and model used
+  • If a value is missing or uncertain, request a correction rather than inventing it
+
+STEP 5 – Report for humans:
+  • Run python project-administrator/agent_metrics.py summary for a quick check
+  • Run python project-administrator/agent_metrics.py report-html to generate the final HTML report
+  • Share the report path and a short factual summary with the human
+
+Stay factual, concise, and audit-friendly. Never ask a human for permission to run reporting tools.
+
+Read the full skill at: ./agents/$(role_to_filename "$role")
+PROMPT
+    return
   fi
 
   if [[ "$coordinator" == "true" ]]; then
@@ -157,7 +200,7 @@ STEP 2 – Create and join the shared project as coordinator:
   Call mcp__brainstorm__create_project with:
     project_id: "$project"
     name: "$project"
-    description: "Eight-agent collaboration demo (product manager + software architect + security architect + frontend + backend + devops + code reviewer + autotester)"
+    description: "Nine-agent collaboration demo (product manager + software architect + security architect + frontend + backend + devops + code reviewer + autotester + project administrator)"
   Then call mcp__brainstorm__join_project with:
     project_id: "$project"
     agent_name: "$role"
@@ -169,7 +212,7 @@ STEP 3 – Announce yourself:
 
 STEP 4 – Wait for the rest of the team to join, then:
   • Poll mcp__brainstorm__receive_messages periodically
-  • Once all eight agents are present (check with mcp__brainstorm__get_project_info),
+  • Once all nine agents are present (check with mcp__brainstorm__get_project_info),
     broadcast a task breakdown:
       - product-manager: define scope, priorities, acceptance criteria, and milestone order
       - software-architect: define system boundaries, API contracts, and architecture decisions
@@ -179,7 +222,13 @@ STEP 4 – Wait for the rest of the team to join, then:
       - devops: set up CI/CD, infrastructure, and deployment pipeline
       - code-reviewer: review design/code/test output and publish findings
       - autotester: build and run automated tests, regressions, and verification evidence
+      - project-administrator: collect task metrics, reconcile reporting gaps, and publish the human-facing HTML report
   • Coordinate the handoff of shared resources such as the spec, architecture notes, and test results.
+
+STEP 5 – Report task metrics after every completed task:
+  • Write a record with python project-administrator/agent_metrics.py record
+  • Include timestamp, agent name, feature name, short task description, time spent, tokens spent, and model used
+  • If a value is unknown, mark it clearly and request a correction later
 
 Stay interactive: read incoming messages, respond to your teammates, and share
 any resources (API specs, config snippets) via mcp__brainstorm__store_resource.
@@ -225,14 +274,15 @@ PROMPT
 # ── Terminal launcher ─────────────────────────────────────────────────────────
 # Tries several terminal emulators in order of preference.
 open_terminal() {
-  local title="$1"
-  local work_dir="$2"
-  local prompt="$3"
+   local title="$1"
+   local work_dir="$2"
+   local prompt="$3"
+   local role="$4"  # Add role to ensure unique temp files
 
-  # Write prompt to a temp file so we can pass it cleanly
-  local tmp
-  tmp=$(mktemp /tmp/brainstorm-agent-XXXXXX.txt)
-  printf '%s' "$prompt" > "$tmp"
+   # Write prompt to a temp file so we can pass it cleanly
+   local tmp
+   tmp=$(mktemp /tmp/brainstorm-agent-${role}-XXXXXX)
+   printf '%s' "$prompt" > "$tmp"
 
   local cmd="cd $(printf '%q' "$work_dir") && claude \"\$(cat $(printf '%q' "$tmp"))\"; rm -f $(printf '%q' "$tmp"); exec \$SHELL"
 
@@ -281,53 +331,58 @@ APPLESCRIPT
 }
 
 # ── Launch agents ─────────────────────────────────────────────────────────────
-echo "==> Launching eight-agent brainstorm demo (project: $PROJECT_NAME)"
+echo "==> Launching nine-agent brainstorm demo (project: $PROJECT_NAME)"
 echo ""
 
 launch_role() {
-  local role="$1"
-  local coordinator="$2"
-  local index="$3"
-  local total="$4"
+   local role="$1"
+   local coordinator="$2"
+   local index="$3"
+   local total="$4"
 
-  local work_dir
-  work_dir="$(role_dir "$role")"
+   local work_dir
+   work_dir="$(role_dir "$role")"
+   # Convert to absolute path so Terminal.app can find it
+   work_dir="$(cd "$work_dir" 2>/dev/null && pwd)" || work_dir="$(pwd)/$(role_dir "$role")"
 
-  local prompt
-  prompt="$(agent_prompt "$role" "$PROJECT_NAME" "$coordinator")"
+   local prompt
+   prompt="$(agent_prompt "$role" "$PROJECT_NAME" "$coordinator")"
 
-  local title
-  title="Brainstorm: $(role_title "$role" | tr '[:upper:]' '[:lower:]')"
+   local title
+   title="Brainstorm: $(role_title "$role" | tr '[:upper:]' '[:lower:]')"
 
-  echo "  [$index/$total] $(role_title "$role") → $work_dir"
-  open_terminal "$title" "$work_dir" "$prompt"
+   echo "  [$index/$total] $(role_title "$role") → $work_dir"
+   open_terminal "$title" "$work_dir" "$prompt" "$role"
 }
 
-launch_role "product-manager" "true" 1 8
+launch_role "product-manager" "true" 1 9
 sleep 1   # small stagger so the coordinator creates the project first
 
-launch_role "software-architect" "false" 2 8
+launch_role "software-architect" "false" 2 9
 sleep 1
 
-launch_role "security-architect" "false" 3 8
+launch_role "security-architect" "false" 3 9
 sleep 1
 
-launch_role "frontend" "false" 4 8
+launch_role "frontend" "false" 4 9
 sleep 1
 
-launch_role "backend" "false" 5 8
+launch_role "backend" "false" 5 9
 sleep 1
 
-launch_role "devops" "false" 6 8
+launch_role "devops" "false" 6 9
 sleep 1
 
-launch_role "code-reviewer" "false" 7 8
+launch_role "code-reviewer" "false" 7 9
 sleep 1
 
-launch_role "autotester" "false" 8 8
+launch_role "autotester" "false" 8 9
+sleep 1
+
+launch_role "project-administrator" "false" 9 9
 
 echo ""
-echo "✅  All eight agents launched!"
+echo "✅  All nine agents launched!"
 echo ""
 echo "  • product-manager (coordinator) creates the project and drives the workflow"
 echo "  • software-architect (contributor) shapes architecture and system boundaries"
@@ -337,6 +392,7 @@ echo "  • backend        (contributor) implements the server/API"
 echo "  • devops         (contributor) handles CI/CD and deployment"
 echo "  • reviewer       (contributor) reviews work and flags issues"
 echo "  • autotester     (contributor) runs and expands automated tests"
+echo "  • project-admin  (contributor) records metrics and publishes human reports"
 echo ""
 echo "  Shared storage: ~/.brainstorm/"
 echo "  Project ID    : $PROJECT_NAME"
@@ -353,4 +409,3 @@ if command -v tmux &>/dev/null && tmux has-session -t brainstorm 2>/dev/null; th
   sleep 1
   tmux attach-session -t brainstorm
 fi
-
