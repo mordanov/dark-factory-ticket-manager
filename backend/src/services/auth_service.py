@@ -1,14 +1,13 @@
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
-from src.core.security import create_access_token, hash_password, verify_password
+from src.core.security import create_access_token, verify_password
 from src.models.refresh_token import RefreshToken
 from src.models.user import User
 from src.schemas.auth import TokenResponse

@@ -31,7 +31,6 @@ except ImportError:
 
 import asyncpg  # type: ignore[import]
 
-
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 # asyncpg uses postgresql:// not postgresql+asyncpg://

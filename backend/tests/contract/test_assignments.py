@@ -5,8 +5,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.security import create_access_token, hash_password
-from src.models.project import Project
 from src.models.progress_update import ProgressUpdate
+from src.models.project import Project
 from src.models.ticket import Ticket, TicketStatus
 from src.models.user import User, UserRole
 

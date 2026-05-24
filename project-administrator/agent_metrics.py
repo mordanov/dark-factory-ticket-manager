@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import html
 import sqlite3
-import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone

@@ -10,7 +10,11 @@ from src.models.ticket import Ticket, TicketStatus
 from src.models.ticket_event import TicketEvent
 from src.models.user import User, UserRole
 from src.schemas.ticket import TicketCreate, TicketUpdate
-from src.services.ticket_service import create_follow_up, create_ticket, delete_ticket, update_ticket
+from src.services.ticket_service import (
+    create_ticket,
+    delete_ticket,
+    update_ticket,
+)
 
 
 async def _user(s: AsyncSession) -> User:

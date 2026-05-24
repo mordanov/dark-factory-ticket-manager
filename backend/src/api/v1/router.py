@@ -1,6 +1,16 @@
 from fastapi import APIRouter
 
-from src.api.v1 import assignments, auth, events, progress, projects, tags, tickets, transitions, users
+from src.api.v1 import (
+    assignments,
+    auth,
+    events,
+    progress,
+    projects,
+    tags,
+    tickets,
+    transitions,
+    users,
+)
 
 router = APIRouter(prefix="/api/v1")
 

@@ -5,8 +5,9 @@ Revises: 010
 Create Date: 2026-05-23
 """
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects.postgresql import ENUM
+
+from alembic import op
 
 revision = "011"
 down_revision = "010"
