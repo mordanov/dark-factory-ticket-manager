@@ -1,8 +1,27 @@
 # Ticket Management System
 
-A web application for tracking software delivery lifecycle progress across projects. Teams create and manage tickets, assign them to one or more users, and track per-assignee progress through a defined status workflow. Every ticket action is recorded as an immutable timestamped event, forming a complete auditable history.
+A web application for tracking software delivery lifecycle progress across projects. Teams create and manage tickets, assign them to one or more users, and track per-assignee progress through a defined status workflow. The system also supports three-language UI localization, six selectable UI color themes, admin user lifecycle management (create/edit/block/unblock), and URL-persisted board/list navigation. Every ticket action is recorded as an immutable timestamped event, forming a complete auditable history.
 
 ## Features
+
+### UI Personalization
+- **Three-language interface** — full UI localization in English (`en`), Russian (`ru`), and Spanish (`es`)
+- **Language switcher on every page** — language changes apply immediately without full page reload
+- **Persistent language preference** — selected language is stored in `localStorage` (`lang` key), defaulting to English for first-time users and falling back to English for missing strings
+- **Six accessible themes** — `light`, `dark`, `solarized`, `oceanic`, `high-contrast`, and `warm`
+- **Persistent theme preference** — selected theme is stored in `localStorage` (`theme` key) and applied at app startup via `data-theme`
+
+### Admin User Management
+- **Admin-only user management page** — `/admin/users` is accessible to `administrator` users only
+- **User lifecycle controls** — administrators can create users, edit user email/role, block users, and unblock users
+- **No user deletion** — accounts are retained; blocking is the deactivation mechanism
+- **Self-protection rule** — administrators cannot block their own account (service-layer enforced)
+- **Blocked login enforcement** — blocked users receive HTTP 403 on next login attempt with: `"Your account has been blocked. Contact an administrator."`
+
+### Persistent URL Navigation
+- Project board/list view is URL-backed via `?view=list|board`
+- Refreshing or sharing project URLs preserves the current selected view
+- Ticket detail pages remain directly addressable and refresh-safe via `/tickets/{ticketId}`
 
 ### Ticket Lifecycle
 - **Primary tickets** — created within a project namespace with a title, description, and initial `OPEN` status
@@ -51,6 +70,7 @@ Each event carries the actor's identity, their role at the time of action, and U
 ### Authentication
 - JWT-based auth (access token: 30-minute TTL, refresh token: revocable via the `refresh_tokens` table)
 - Access tokens are stored in memory only (Zustand) — never in `localStorage` or `sessionStorage`
+- Blocked users are denied on login (HTTP 403); existing active sessions continue until token expiry
 - Two roles: `administrator` and `user`
 
 ---
@@ -78,6 +98,8 @@ Each event carries the actor's identity, their role at the time of action, and U
 - **UUID primary keys** — all tables use UUID v4 PKs. Sequential IDs are never exposed.
 - **Versioned API** — all routes live under `/api/v1/`. Breaking changes require a new version prefix.
 - **Append-only enforcement at the DB layer** — migration `009` installs a PostgreSQL trigger that raises an exception if any code attempts `UPDATE` or `DELETE` on `ticket_events`.
+- **Admin controls are backend-enforced** — `/api/v1/admin/*` authorization is enforced server-side and not delegated to frontend routing alone.
+- **UI preferences are client-scoped** — language and theme settings are persisted per-browser via `localStorage` and are intentionally not synced server-side.
 
 ---
 
@@ -166,7 +188,7 @@ docker run -d --name tms-postgres \
 
 ```bash
 alembic upgrade head
-# Applies 9 migrations: 001 (enums) through 009 (ticket_events immutability trigger)
+# Applies all migrations through current head (includes `013_add_users_blocked_at`)
 ```
 
 #### Seed data (optional)
@@ -246,7 +268,11 @@ Starts three services:
 
 ## API Overview
 
-All endpoints are under `/api/v1/`. Full contract is at `specs/001-ticket-management-system/contracts/openapi.yaml` and rendered at `GET /docs` when running locally.
+All endpoints are under `/api/v1/`.
+
+- Core ticketing contract: `specs/001-ticket-management-system/contracts/openapi.yaml`
+- Admin user management contract: `specs/002-ui-personalization-admin/contracts/openapi-admin.yaml`
+- Runtime interactive docs: `GET /docs`
 
 | Method | Path | Description |
 |---|---|---|
@@ -265,6 +291,11 @@ All endpoints are under `/api/v1/`. Full contract is at `specs/001-ticket-manage
 | GET | `/tickets/{id}/progress` | List all assignees' progress updates |
 | POST | `/tickets/{id}/transitions` | Attempt a status transition |
 | GET | `/tickets/{id}/events` | Paginated activity history |
+| GET | `/admin/users` | List all users (admin only) |
+| POST | `/admin/users` | Create a user (admin only) |
+| PATCH | `/admin/users/{id}` | Edit a user (admin only) |
+| POST | `/admin/users/{id}/block` | Block a user (admin only; self-block forbidden) |
+| POST | `/admin/users/{id}/unblock` | Unblock a user (admin only) |
 
 ---
 
@@ -279,6 +310,8 @@ pytest                        # all tests
 pytest tests/unit/            # pure unit tests (no DB)
 pytest tests/integration/     # requires live PostgreSQL
 pytest tests/contract/        # validates responses against openapi.yaml
+pytest tests/integration/test_auth_blocked.py   # blocked-user login flow
+pytest tests/contract/test_admin.py             # admin API contract coverage
 ```
 
 ### Frontend
@@ -290,6 +323,10 @@ npm test                      # Vitest single-run
 npm run test:watch            # Vitest watch mode
 npm run test:coverage         # with coverage report
 npm run typecheck             # TypeScript type check only
+npm run test -- LanguageSwitcher
+npm run test -- ThemeSwitcher
+npm run test -- AdminUsersPage
+npm run test -- ProjectPage.url
 ```
 
 ---
@@ -314,6 +351,12 @@ npm run typecheck             # TypeScript type check only
 
 9. **No rate limiting in the application layer.** Rate limiting on `/auth/login` is expected to be handled by the reverse proxy in production.
 
+10. **User deactivation is block/unblock only.** Admins cannot delete users; account data is retained for auditability.
+
+11. **Block enforcement timing is next login.** Blocking does not terminate an already-issued access token; active sessions expire naturally.
+
+12. **Theme catalog is fixed at six schemes.** `light`, `dark`, `solarized`, `oceanic`, `high-contrast`, and `warm` are the supported set for this feature scope.
+
 ---
 
 ## Security Notes
@@ -324,6 +367,9 @@ npm run typecheck             # TypeScript type check only
 - `ticket_events` is enforced append-only by both the application layer and a PostgreSQL trigger (migration `009`). No `UPDATE` or `DELETE` is ever issued against this table.
 - CORS is restricted to `FRONTEND_URL` only. `allow_origins=["*"]` is not used.
 - Role-based and assignment-based access control is enforced in FastAPI dependency functions before any handler executes.
+- Admin actions are restricted to `administrator` role server-side for all `/api/v1/admin/*` endpoints.
+- Admin user-management actions are auditable via structured logs including actor and target IDs.
+- Self-targeted admin safety checks prevent own-account block actions.
 - Structured JSON logs (structlog) exclude sensitive fields. Stack traces are suppressed in `production` mode.
 
 See `devops/security-review.md` for the full threat model, finding catalog, and accepted residual risks.
@@ -338,9 +384,10 @@ See `devops/security-review.md` for the full threat model, finding catalog, and 
 | `connection refused` on port 5432 | Postgres not running | Start Postgres or Docker container |
 | `alembic: command not found` | venv not activated | `source .venv/bin/activate` |
 | `401 Unauthorized` on all endpoints | Access token expired (30-min TTL) | Re-login to get a fresh token |
+| `403 Your account has been blocked` at login | User account has `blocked_at` set | Ask an administrator to unblock the account |
 | Transition returns 422 with `missing_updates` | Not all assignees have submitted progress | Each assignee must `PUT /api/v1/tickets/{id}/progress` before transitioning |
 | CORS errors in browser | `FRONTEND_URL` mismatch | Ensure `FRONTEND_URL` in backend `.env` matches the browser origin exactly |
-| Alembic reports 8 steps instead of 9 | Migration 009 not yet applied | Run `alembic upgrade head` to apply the `ticket_events` immutability trigger |
+| Alembic is behind latest head revision | Not all migrations are applied (for example `013_add_users_blocked_at`) | Run `alembic upgrade head` and verify the reported current revision |
 
 ---
 
@@ -349,7 +396,7 @@ See `devops/security-review.md` for the full threat model, finding catalog, and 
 ```
 ticket-manager/
 ├── backend/
-│   ├── alembic/versions/       # 9 numbered migrations
+│   ├── alembic/versions/       # numbered migrations (current head includes 013)
 │   ├── src/
 │   │   ├── main.py
 │   │   ├── core/               # config, database, security, logging
@@ -365,7 +412,11 @@ ticket-manager/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/                # typed API client functions
+│   │   ├── locales/            # i18n dictionaries (en/ru/es)
 │   │   ├── components/         # React components
+│   │   │   ├── admin/          # admin user-management UI
+│   │   │   └── common/         # language/theme switchers
+│   │   ├── hooks/              # custom hooks (including useTheme)
 │   │   ├── pages/              # route-level page components
 │   │   └── store/auth.ts       # Zustand auth state (memory-only tokens)
 │   └── tests/
@@ -378,5 +429,10 @@ ticket-manager/
 │   ├── data-model.md           # entity definitions and relationships
 │   ├── quickstart.md           # detailed developer quickstart
 │   └── contracts/openapi.yaml  # full API contract
+├── specs/002-ui-personalization-admin/
+│   ├── spec.md                 # UI personalization and admin management spec
+│   ├── plan.md                 # implementation plan
+│   ├── quickstart.md           # end-to-end test scenarios
+│   └── contracts/openapi-admin.yaml
 └── docker-compose.yml
 ```
