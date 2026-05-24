@@ -1,6 +1,7 @@
 pyproject.toml
 src/api/__init__.py
 src/api/v1/__init__.py
+src/api/v1/admin.py
 src/api/v1/assignments.py
 src/api/v1/auth.py
 src/api/v1/events.py
@@ -27,6 +28,7 @@ src/models/ticket_assignment.py
 src/models/ticket_event.py
 src/models/user.py
 src/schemas/__init__.py
+src/schemas/admin.py
 src/schemas/assignment.py
 src/schemas/auth.py
 src/schemas/event.py
@@ -35,6 +37,7 @@ src/schemas/project.py
 src/schemas/ticket.py
 src/schemas/transition.py
 src/services/__init__.py
+src/services/admin_service.py
 src/services/assignment_service.py
 src/services/auth_service.py
 src/services/event_service.py
