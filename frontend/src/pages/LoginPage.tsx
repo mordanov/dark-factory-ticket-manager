@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../store/auth";
 import { login } from "../api/auth";
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -14,15 +16,13 @@ export function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!email || !password) {
-      setError("Email and password are required.");
+      setError(t("auth.error.required"));
       return;
     }
     setError(null);
     setLoading(true);
     try {
       const tokenResp = await login(email, password);
-      // Decode minimal user info from the JWT payload for the store.
-      // The backend embeds sub (user id), email, and role in the token.
       const payload = parseJwtPayload(tokenResp.access_token);
       loginAction(tokenResp.access_token, tokenResp.refresh_token, {
         id: payload.sub as string,
@@ -31,7 +31,7 @@ export function LoginPage() {
       });
       navigate("/projects", { replace: true });
     } catch (err: unknown) {
-      const msg = extractErrorMessage(err);
+      const msg = extractErrorMessage(err, t);
       setError(msg);
     } finally {
       setLoading(false);
@@ -41,10 +41,10 @@ export function LoginPage() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.heading}>Ticket Manager</h1>
+        <h1 style={styles.heading}>{t("app.name")}</h1>
         <form onSubmit={handleSubmit} noValidate>
           <div style={styles.field}>
-            <label htmlFor="email" style={styles.label}>Email</label>
+            <label htmlFor="email" style={styles.label}>{t("auth.email")}</label>
             <input
               id="email"
               type="email"
@@ -57,7 +57,7 @@ export function LoginPage() {
             />
           </div>
           <div style={styles.field}>
-            <label htmlFor="password" style={styles.label}>Password</label>
+            <label htmlFor="password" style={styles.label}>{t("auth.password")}</label>
             <input
               id="password"
               type="password"
@@ -74,7 +74,7 @@ export function LoginPage() {
             </p>
           )}
           <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? t("auth.signingIn") : t("auth.signIn")}
           </button>
         </form>
       </div>
@@ -91,17 +91,18 @@ function parseJwtPayload(token: string): Record<string, unknown> {
   }
 }
 
-function extractErrorMessage(err: unknown): string {
+function extractErrorMessage(err: unknown, t: (key: string) => string): string {
   if (
     typeof err === "object" &&
     err !== null &&
     "response" in err
   ) {
     const resp = (err as { response: { status: number; data?: { detail?: string } } }).response;
-    if (resp.status === 401) return "Invalid email or password.";
+    if (resp.status === 401) return t("auth.error.invalid");
+    if (resp.status === 403) return t("auth.error.blocked");
     if (resp.data?.detail) return resp.data.detail;
   }
-  return "An unexpected error occurred. Please try again.";
+  return t("auth.error.unexpected");
 }
 
 const styles: Record<string, React.CSSProperties> = {

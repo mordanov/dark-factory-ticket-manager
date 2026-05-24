@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { TagInput } from "./TagInput";
 import type { TicketType, TicketSpec } from "../../types";
-import { TICKET_TYPE_LABELS, TICKET_SPEC_LABELS } from "../../types";
 
 export interface TicketFormValues {
   title: string;
@@ -36,9 +36,10 @@ export function TicketForm({
   initialValues,
   onSubmit,
   onCancel,
-  submitLabel = "Save",
+  submitLabel,
   showTags = true,
 }: TicketFormProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [ticketType, setTicketType] = useState<TicketType>(initialValues?.ticket_type ?? "feature");
@@ -50,10 +51,12 @@ export function TicketForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const resolvedSubmitLabel = submitLabel ?? t("tickets.form.save");
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!title.trim()) { setError("Title is required."); return; }
-    if (!ticketSpec) { setError("Specification is required."); return; }
+    if (!title.trim()) { setError(t("tickets.form.titleRequired")); return; }
+    if (!ticketSpec) { setError(t("tickets.form.specRequired")); return; }
     setError(null);
     setLoading(true);
     try {
@@ -68,18 +71,24 @@ export function TicketForm({
         tags,
       });
     } catch (err: unknown) {
-      setError(extractErrorMessage(err));
+      setError(extractErrorMessage(err, t));
     } finally {
       setLoading(false);
     }
   }
+
+  const flagDefs: [string, boolean, (v: boolean) => void, string][] = [
+    [t("tickets.flags.urgent"), urgent, setUrgent, "#e74c3c"],
+    [t("tickets.flags.blocker"), blocker, setBlocker, "#c0392b"],
+    [t("tickets.flags.bugfix"), bugfix, setBugfix, "#8e44ad"],
+  ];
 
   return (
     <form onSubmit={handleSubmit} noValidate>
       {/* Title */}
       <div style={field}>
         <label htmlFor="ticket-title" style={label}>
-          Title <span style={{ color: "#c0392b" }}>*</span>
+          {t("tickets.form.title")} <span style={{ color: "#c0392b" }}>*</span>
         </label>
         <input
           id="ticket-title"
@@ -94,7 +103,7 @@ export function TicketForm({
 
       {/* Description */}
       <div style={field}>
-        <label htmlFor="ticket-description" style={label}>Description</label>
+        <label htmlFor="ticket-description" style={label}>{t("tickets.form.description")}</label>
         <textarea
           id="ticket-description"
           value={description}
@@ -108,7 +117,7 @@ export function TicketForm({
       {/* Type + Spec side by side */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
         <div>
-          <label htmlFor="ticket-type" style={label}>Type</label>
+          <label htmlFor="ticket-type" style={label}>{t("tickets.form.type")}</label>
           <select
             id="ticket-type"
             value={ticketType}
@@ -116,14 +125,14 @@ export function TicketForm({
             style={select}
             disabled={loading}
           >
-            {TICKET_TYPES.map((t) => (
-              <option key={t} value={t}>{TICKET_TYPE_LABELS[t]}</option>
+            {TICKET_TYPES.map((tp) => (
+              <option key={tp} value={tp}>{t(`tickets.type.${tp}`)}</option>
             ))}
           </select>
         </div>
         <div>
           <label htmlFor="ticket-spec" style={label}>
-            Specification <span style={{ color: "#c0392b" }}>*</span>
+            {t("tickets.form.spec")} <span style={{ color: "#c0392b" }}>*</span>
           </label>
           <select
             id="ticket-spec"
@@ -132,9 +141,9 @@ export function TicketForm({
             style={{ ...select, ...(ticketSpec === "" ? { color: "#999" } : {}) }}
             disabled={loading}
           >
-            <option value="">— select —</option>
+            <option value="">{t("tickets.form.specPlaceholder")}</option>
             {TICKET_SPECS.map((s) => (
-              <option key={s} value={s}>{TICKET_SPEC_LABELS[s]}</option>
+              <option key={s} value={s}>{t(`tickets.spec.${s}`)}</option>
             ))}
           </select>
         </div>
@@ -142,13 +151,9 @@ export function TicketForm({
 
       {/* Flags */}
       <div style={{ marginBottom: "1rem" }}>
-        <span style={label}>Flags</span>
+        <span style={label}>{t("tickets.form.flags")}</span>
         <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.3rem" }}>
-          {([
-            ["urgent", urgent, setUrgent, "#e74c3c"],
-            ["blocker", blocker, setBlocker, "#c0392b"],
-            ["bugfix", bugfix, setBugfix, "#8e44ad"],
-          ] as [string, boolean, (v: boolean) => void, string][]).map(([name, val, setter, color]) => (
+          {flagDefs.map(([name, val, setter, color]) => (
             <label key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer", fontSize: "0.875rem" }}>
               <input
                 type="checkbox"
@@ -168,7 +173,9 @@ export function TicketForm({
       {/* Tags */}
       {showTags && (
         <div style={field}>
-          <label style={label}>Tags <span style={{ fontWeight: 400, color: "#888" }}>(optional, up to 10)</span></label>
+          <label style={label}>
+            {t("tickets.form.tags")} <span style={{ fontWeight: 400, color: "#888" }}>{t("tickets.form.tagsHint")}</span>
+          </label>
           <TagInput value={tags} onChange={setTags} disabled={loading} />
         </div>
       )}
@@ -181,11 +188,11 @@ export function TicketForm({
 
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button type="submit" style={submitBtn} disabled={loading}>
-          {loading ? "Saving…" : submitLabel}
+          {loading ? t("tickets.form.saving") : resolvedSubmitLabel}
         </button>
         {onCancel && (
           <button type="button" onClick={onCancel} style={cancelBtn} disabled={loading}>
-            Cancel
+            {t("tickets.form.cancel")}
           </button>
         )}
       </div>
@@ -193,12 +200,12 @@ export function TicketForm({
   );
 }
 
-function extractErrorMessage(err: unknown): string {
+function extractErrorMessage(err: unknown, t: (key: string) => string): string {
   if (typeof err === "object" && err !== null && "response" in err) {
     const e = err as { response: { data?: { detail?: string } } };
     if (e.response.data?.detail) return e.response.data.detail;
   }
-  return "An unexpected error occurred.";
+  return t("tickets.form.error");
 }
 
 const field: React.CSSProperties = { marginBottom: "1rem" };

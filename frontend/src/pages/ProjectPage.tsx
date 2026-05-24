@@ -1,19 +1,29 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProjectTicketList } from "../components/projects/ProjectTicketList";
 import { KanbanBoard } from "../components/projects/KanbanBoard";
 import { TicketForm, type TicketFormValues } from "../components/tickets/TicketForm";
+import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
+import { ThemeSwitcher } from "../components/common/ThemeSwitcher";
 import { createTicket } from "../api/tickets";
 import { listProjects } from "../api/projects";
 
 type View = "list" | "board";
 
 export function ProjectPage() {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const [showCreate, setShowCreate] = useState(false);
-  const [view, setView] = useState<View>("list");
   const queryClient = useQueryClient();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = (searchParams.get("view") as View) ?? "list";
+
+  function setView(newView: View) {
+    setSearchParams({ view: newView }, { replace: true });
+  }
 
   const { data: projects } = useQuery({
     queryKey: ["projects"],
@@ -44,7 +54,7 @@ export function ProjectPage() {
       <header style={header}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <Link to="/projects" style={{ color: "#0066cc", fontSize: "0.875rem" }}>
-            ← Projects
+            {t("nav.backToProjects")}
           </Link>
           <span style={{ color: "#ccc" }}>/</span>
           <h1 style={{ margin: 0, fontSize: "1.1rem" }}>
@@ -52,22 +62,24 @@ export function ProjectPage() {
           </h1>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <LanguageSwitcher />
+          <ThemeSwitcher />
           <div style={viewToggle}>
             <button
               onClick={() => setView("list")}
               style={{ ...viewBtn, ...(view === "list" ? viewBtnActive : {}) }}
             >
-              ☰ List
+              {t("tickets.view.list")}
             </button>
             <button
               onClick={() => setView("board")}
               style={{ ...viewBtn, ...(view === "board" ? viewBtnActive : {}) }}
             >
-              ⊞ Board
+              {t("tickets.view.board")}
             </button>
           </div>
           <button onClick={() => setShowCreate((v) => !v)} style={createBtn}>
-            {showCreate ? "Cancel" : "+ New Ticket"}
+            {showCreate ? t("tickets.form.cancel") : t("tickets.newTicket")}
           </button>
         </div>
       </header>
@@ -75,11 +87,11 @@ export function ProjectPage() {
       <main style={view === "board" ? mainBoard : main}>
         {showCreate && (
           <div style={formCard}>
-            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Create Ticket</h2>
+            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{t("tickets.createTicket")}</h2>
             <TicketForm
               onSubmit={handleCreate}
               onCancel={() => setShowCreate(false)}
-              submitLabel="Create Ticket"
+              submitLabel={t("tickets.form.createTicket")}
             />
           </div>
         )}

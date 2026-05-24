@@ -1,64 +1,59 @@
+import { useTranslation } from "react-i18next";
 import type { TicketEventResponse } from "../../types";
-
-const EVENT_LABELS: Record<string, string> = {
-  "ticket.created": "Ticket created",
-  "ticket.updated": "Ticket updated",
-  "ticket.deleted": "Ticket deleted",
-  "ticket.assigned": "User assigned",
-  "ticket.unassigned": "User unassigned",
-  "ticket.status_changed": "Status changed",
-  "ticket.progress_updated": "Progress updated",
-  "ticket.transition_blocked": "Transition blocked",
-};
 
 interface TicketEventHistoryProps {
   events: TicketEventResponse[];
 }
 
 export function TicketEventHistory({ events }: TicketEventHistoryProps) {
+  const { t } = useTranslation();
+
   if (events.length === 0) {
-    return <p style={{ color: "#888", fontSize: "0.875rem" }}>No activity yet.</p>;
+    return <p style={{ color: "#888", fontSize: "0.875rem" }}>{t("tickets.events.noActivity")}</p>;
   }
 
   return (
     <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
-      {events.map((event) => (
-        <li key={event.id} style={eventRow}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap" }}>
-            <span style={{ fontWeight: 500, fontSize: "0.875rem" }}>
-              {EVENT_LABELS[event.event_type] ?? event.event_type}
-            </span>
-            <span
-              style={{ fontSize: "0.8rem", color: "#888" }}
-              title={new Date(event.occurred_at).toLocaleString()}
-            >
-              {formatRelativeTime(event.occurred_at)}
-            </span>
-          </div>
-          <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "0.15rem" }}>
-            by {event.actor.email}
-          </div>
-          {event.new_state && (
-            <div style={{ marginTop: "0.25rem", fontSize: "0.8rem", color: "#555" }}>
-              {renderStateChange(event)}
+      {events.map((event) => {
+        const labelKey = `tickets.events.label.${event.event_type.replace(".", "_")}`;
+        return (
+          <li key={event.id} style={eventRow}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 500, fontSize: "0.875rem" }}>
+                {t(labelKey, { defaultValue: event.event_type })}
+              </span>
+              <span
+                style={{ fontSize: "0.8rem", color: "#888" }}
+                title={new Date(event.occurred_at).toLocaleString()}
+              >
+                {formatRelativeTime(event.occurred_at, t)}
+              </span>
             </div>
-          )}
-        </li>
-      ))}
+            <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "0.15rem" }}>
+              {t("tickets.events.by", { email: event.actor.email })}
+            </div>
+            {event.new_state && (
+              <div style={{ marginTop: "0.25rem", fontSize: "0.8rem", color: "#555" }}>
+                {renderStateChange(event)}
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }
 
-function formatRelativeTime(isoString: string): string {
+function formatRelativeTime(isoString: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const diff = Date.now() - new Date(isoString).getTime();
   const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) return t("tickets.events.time.justNow");
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  if (minutes < 60) return t("tickets.events.time.minutesAgo", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  if (hours < 24) return t("tickets.events.time.hoursAgo", { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days} day${days !== 1 ? "s" : ""} ago`;
+  return t("tickets.events.time.daysAgo", { count: days });
 }
 
 function renderStateChange(event: TicketEventResponse): string | null {

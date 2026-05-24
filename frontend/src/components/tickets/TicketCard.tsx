@@ -1,10 +1,6 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { TicketResponse } from "../../types";
-import {
-  TICKET_STATUS_LABELS,
-  TICKET_TYPE_LABELS,
-  TICKET_SPEC_LABELS,
-} from "../../types";
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: "#2980b9",
@@ -23,6 +19,7 @@ interface TicketCardProps {
 }
 
 export function TicketCard({ ticket }: TicketCardProps) {
+  const { t } = useTranslation();
   const statusColor = STATUS_COLORS[ticket.status] ?? "#7f8c8d";
   const activeFlags = [
     ticket.urgent && { label: "URGENT", color: "#e74c3c", bg: "#fdecea" },
@@ -38,13 +35,13 @@ export function TicketCard({ ticket }: TicketCardProps) {
           {ticket.display_id && (
             <span style={idBadge}>{ticket.display_id}</span>
           )}
-          <span style={typeBadge}>{TICKET_TYPE_LABELS[ticket.ticket_type]}</span>
+          <span style={typeBadge}>{t(`tickets.type.${ticket.ticket_type}`)}</span>
           {ticket.ticket_spec && (
-            <span style={specBadge}>{TICKET_SPEC_LABELS[ticket.ticket_spec]}</span>
+            <span style={specBadge}>{t(`tickets.spec.${ticket.ticket_spec}`)}</span>
           )}
         </div>
         <span style={{ ...statusBadge, background: statusColor, flexShrink: 0 }}>
-          {TICKET_STATUS_LABELS[ticket.status]}
+          {t(`tickets.status.${ticket.status}`)}
         </span>
       </div>
 
@@ -74,8 +71,8 @@ export function TicketCard({ ticket }: TicketCardProps) {
       {/* Tags */}
       {ticket.tags.length > 0 && (
         <div style={{ marginTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
-          {ticket.tags.map((t) => (
-            <span key={t.id} style={tagPill}>{t.name}</span>
+          {ticket.tags.map((tg) => (
+            <span key={tg.id} style={tagPill}>{tg.name}</span>
           ))}
         </div>
       )}

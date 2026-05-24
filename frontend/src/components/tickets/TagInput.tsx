@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { searchTags } from "../../api/tickets";
 import type { TagResponse } from "../../types";
 
@@ -9,6 +10,7 @@ interface TagInputProps {
 }
 
 export function TagInput({ value, onChange, disabled }: TagInputProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState<TagResponse[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -23,7 +25,7 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
     const timer = setTimeout(async () => {
       try {
         const results = await searchTags(input);
-        setSuggestions(results.filter((t) => !value.includes(t.name)));
+        setSuggestions(results.filter((tg) => !value.includes(tg.name)));
         setShowDropdown(true);
       } catch {
         // ignore search errors
@@ -43,7 +45,7 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
   }
 
   function removeTag(name: string) {
-    onChange(value.filter((t) => t !== name));
+    onChange(value.filter((tg) => tg !== name));
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -63,7 +65,12 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
             <span key={tag} style={pill}>
               {tag}
               {!disabled && (
-                <button type="button" onClick={() => removeTag(tag)} style={pillRemove} title={`Remove "${tag}"`}>
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  style={pillRemove}
+                  title={t("tickets.tagInput.remove", { tag })}
+                >
                   ×
                 </button>
               )}
@@ -80,14 +87,14 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-            placeholder="Type tag name, press Enter to add…"
+            placeholder={t("tickets.tagInput.placeholder")}
             style={tagInputStyle}
           />
           {showDropdown && suggestions.length > 0 && (
             <ul style={dropdown}>
-              {suggestions.map((t) => (
-                <li key={t.id} onMouseDown={() => addTag(t.name)} style={dropdownItem}>
-                  {t.name}
+              {suggestions.map((tg) => (
+                <li key={tg.id} onMouseDown={() => addTag(tg.name)} style={dropdownItem}>
+                  {tg.name}
                 </li>
               ))}
             </ul>
@@ -95,7 +102,7 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
         </div>
       )}
       {value.length >= 10 && (
-        <span style={{ fontSize: "0.75rem", color: "#888" }}>Maximum 10 tags reached.</span>
+        <span style={{ fontSize: "0.75rem", color: "#888" }}>{t("tickets.tagInput.maxReached")}</span>
       )}
     </div>
   );

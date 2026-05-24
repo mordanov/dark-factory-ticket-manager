@@ -137,8 +137,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminUserResponse"
-        "400":
-          description: Email already registered
+        "409":
+          description: Email already registered (conflict)
           content:
             application/json:
               schema:

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getTicket,
@@ -20,11 +21,13 @@ import { StatusTransitionButton } from "../components/tickets/StatusTransitionBu
 import { TicketEventHistory } from "../components/tickets/TicketEventHistory";
 import { TicketForm, type TicketFormValues } from "../components/tickets/TicketForm";
 import { TagInput } from "../components/tickets/TagInput";
-import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS, TICKET_SPEC_LABELS } from "../types";
+import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
+import { ThemeSwitcher } from "../components/common/ThemeSwitcher";
 import type { TicketResponse } from "../types";
 import { useAuthStore } from "../store/auth";
 
 export function TicketDetailPage() {
+  const { t } = useTranslation();
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -81,7 +84,7 @@ export function TicketDetailPage() {
   }
 
   async function handleDelete() {
-    if (!window.confirm("Delete this ticket? This cannot be undone.")) return;
+    if (!window.confirm(t("tickets.detail.deleteConfirm"))) return;
     setDeleteError(null);
     try {
       await deleteTicket(ticketId!);
@@ -90,16 +93,16 @@ export function TicketDetailPage() {
       if (typeof err === "object" && err !== null && "response" in err) {
         const e = err as { response: { status: number; data?: { detail?: string } } };
         if (e.response.status === 409) {
-          setDeleteError("Cannot delete: this ticket has active follow-up tickets.");
+          setDeleteError(t("tickets.detail.deleteConflict"));
           return;
         }
       }
-      setDeleteError("Failed to delete ticket.");
+      setDeleteError(t("tickets.detail.deleteError"));
     }
   }
 
   async function handleSubmitProgress() {
-    if (!progressInput.trim()) { setProgressError("Progress content is required."); return; }
+    if (!progressInput.trim()) { setProgressError(t("tickets.progress.required")); return; }
     setProgressError(null);
     setProgressLoading(true);
     try {
@@ -108,7 +111,7 @@ export function TicketDetailPage() {
       await queryClient.invalidateQueries({ queryKey: ["ticket-events", ticketId] });
       setProgressInput("");
     } catch {
-      setProgressError("Failed to submit progress update.");
+      setProgressError(t("tickets.progress.failed"));
     } finally {
       setProgressLoading(false);
     }
@@ -136,7 +139,7 @@ export function TicketDetailPage() {
       await queryClient.invalidateQueries({ queryKey: ["ticket", ticketId] });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
-      setAssignError(e.response?.data?.detail ?? "Failed to assign.");
+      setAssignError(e.response?.data?.detail ?? t("tickets.assign.failed"));
     }
   }
 
@@ -146,7 +149,7 @@ export function TicketDetailPage() {
       await unassignUser(ticketId!, userId);
       await queryClient.invalidateQueries({ queryKey: ["ticket", ticketId] });
     } catch {
-      setAssignError("Failed to remove assignee.");
+      setAssignError(t("tickets.assign.removeFailed"));
     }
   }
 
@@ -160,14 +163,14 @@ export function TicketDetailPage() {
       setSelectedUserId("");
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
-      setAssignError(e.response?.data?.detail ?? "Failed to assign user.");
+      setAssignError(e.response?.data?.detail ?? t("tickets.assign.userFailed"));
     }
   }
 
   async function handleTagChange(newTags: string[]) {
     if (!ticket) return;
     setTagError(null);
-    const currentNames = ticket.tags.map((t) => t.name);
+    const currentNames = ticket.tags.map((tg) => tg.name);
     const added = newTags.filter((n) => !currentNames.includes(n));
     const removed = currentNames.filter((n) => !newTags.includes(n));
 
@@ -182,19 +185,19 @@ export function TicketDetailPage() {
       queryClient.setQueryData(["ticket", ticketId], updated);
       setPendingTags(null);
     } catch {
-      setTagError("Failed to update tags.");
+      setTagError(t("tickets.tags.failed"));
     }
   }
 
   if (!ticketId) return null;
-  if (isLoading) return <div style={page}><p>Loading…</p></div>;
-  if (isError || !ticket) return <div style={page}><p style={{ color: "#c0392b" }}>Ticket not found.</p></div>;
+  if (isLoading) return <div style={page}><p>{t("tickets.loading")}</p></div>;
+  if (isError || !ticket) return <div style={page}><p style={{ color: "#c0392b" }}>{t("tickets.notFound")}</p></div>;
 
   const isCreator = currentUser?.id === ticket.created_by.id;
   const isAssignee = ticket.assignees.some((a) => a.user_id === currentUser?.id);
   const isAdmin = currentUser?.role === "administrator";
   const alreadyAssigned = ticket.assignees.some((a) => a.user_id === currentUser?.id);
-  const currentTagNames = (pendingTags ?? ticket.tags.map((t) => t.name));
+  const currentTagNames = (pendingTags ?? ticket.tags.map((tg) => tg.name));
 
   const activeFlags = [
     ticket.urgent && { label: "URGENT", color: "#e74c3c", bg: "#fdecea" },
@@ -204,10 +207,14 @@ export function TicketDetailPage() {
 
   return (
     <div style={page}>
-      <header style={header}>
+      <header style={{ ...header, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Link to={`/projects/${ticket.project_id}`} style={{ color: "#0066cc", fontSize: "0.875rem" }}>
-          ← Back to project
+          {t("nav.backToProject")}
         </Link>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <LanguageSwitcher />
+          <ThemeSwitcher />
+        </div>
       </header>
 
       <main style={main}>
@@ -215,7 +222,7 @@ export function TicketDetailPage() {
         <div style={section}>
           {isEditing ? (
             <>
-              <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Edit Ticket</h2>
+              <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{t("tickets.editTicket")}</h2>
               <TicketForm
                 initialValues={{
                   title: ticket.title,
@@ -229,7 +236,7 @@ export function TicketDetailPage() {
                 showTags={false}
                 onSubmit={handleEdit}
                 onCancel={() => setIsEditing(false)}
-                submitLabel="Save Changes"
+                submitLabel={t("tickets.form.saveChanges")}
               />
             </>
           ) : (
@@ -245,16 +252,16 @@ export function TicketDetailPage() {
                   <h1 style={{ margin: 0, fontSize: "1.25rem" }}>{ticket.title}</h1>
                 </div>
                 <span style={{ ...statusBadge, background: statusColor(ticket.status) }}>
-                  {TICKET_STATUS_LABELS[ticket.status]}
+                  {t(`tickets.status.${ticket.status}`)}
                 </span>
               </div>
 
               {/* Type + Spec */}
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
-                <span style={metaChip}>{TICKET_TYPE_LABELS[ticket.ticket_type]}</span>
+                <span style={metaChip}>{t(`tickets.type.${ticket.ticket_type}`)}</span>
                 {ticket.ticket_spec && (
                   <span style={{ ...metaChip, color: "#2c7a4b", background: "#eafaf1", border: "1px solid #b7e4c7" }}>
-                    {TICKET_SPEC_LABELS[ticket.ticket_spec]}
+                    {t(`tickets.spec.${ticket.ticket_spec}`)}
                   </span>
                 )}
                 {activeFlags.map((f) => (
@@ -270,25 +277,25 @@ export function TicketDetailPage() {
                 </p>
               )}
               <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "#888" }}>
-                Created by {ticket.created_by.email}
+                {t("tickets.detail.createdBy", { email: ticket.created_by.email })}
               </div>
               {ticket.parent_ticket_id && (
                 <div style={{ fontSize: "0.8rem", color: "#888", marginTop: "0.25rem" }}>
-                  Follow-up of{" "}
+                  {t("tickets.detail.followUpOf")}{" "}
                   <Link to={`/tickets/${ticket.parent_ticket_id}`} style={{ color: "#0066cc" }}>
-                    parent ticket
+                    {t("tickets.detail.parentTicket")}
                   </Link>
                 </div>
               )}
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
                 {isCreator && (
                   <>
-                    <button onClick={() => setIsEditing(true)} style={secondaryBtn}>Edit</button>
-                    <button onClick={handleDelete} style={dangerBtn}>Delete</button>
+                    <button onClick={() => setIsEditing(true)} style={secondaryBtn}>{t("tickets.detail.edit")}</button>
+                    <button onClick={handleDelete} style={dangerBtn}>{t("tickets.detail.delete")}</button>
                   </>
                 )}
                 <button onClick={() => setShowFollowUpForm((v) => !v)} style={secondaryBtn}>
-                  {showFollowUpForm ? "Cancel Follow-up" : "+ Follow-up"}
+                  {showFollowUpForm ? t("tickets.detail.cancelFollowUp") : t("tickets.detail.addFollowUp")}
                 </button>
               </div>
               {deleteError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", marginTop: "0.5rem" }}>{deleteError}</p>}
@@ -299,18 +306,18 @@ export function TicketDetailPage() {
         {/* Follow-up form */}
         {showFollowUpForm && (
           <div style={section}>
-            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Create Follow-up Ticket</h2>
+            <h2 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{t("tickets.detail.createFollowUp")}</h2>
             <TicketForm
               onSubmit={handleCreateFollowUp}
               onCancel={() => setShowFollowUpForm(false)}
-              submitLabel="Create Follow-up"
+              submitLabel={t("tickets.form.createFollowUp")}
             />
           </div>
         )}
 
         {/* Tags */}
         <div style={section}>
-          <h2 style={sectionTitle}>Tags</h2>
+          <h2 style={sectionTitle}>{t("tickets.detail.tags")}</h2>
           <TagInput
             value={currentTagNames}
             onChange={(newTags) => {
@@ -323,7 +330,7 @@ export function TicketDetailPage() {
 
         {/* Assignees and progress */}
         <div style={section}>
-          <h2 style={sectionTitle}>Assignees & Progress</h2>
+          <h2 style={sectionTitle}>{t("tickets.detail.assigneesProgress")}</h2>
           <AssigneeProgressList
             assignees={ticket.assignees}
             progressItems={progressData?.items ?? []}
@@ -333,10 +340,10 @@ export function TicketDetailPage() {
           />
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
             {!alreadyAssigned && (
-              <button onClick={handleAssignMe} style={secondaryBtn}>+ Assign me</button>
+              <button onClick={handleAssignMe} style={secondaryBtn}>{t("tickets.assign.assignMe")}</button>
             )}
             {isAdmin && (
-              <button onClick={() => setShowAssignModal(true)} style={secondaryBtn}>+ Assign user</button>
+              <button onClick={() => setShowAssignModal(true)} style={secondaryBtn}>{t("tickets.assign.assignUser")}</button>
             )}
           </div>
           {assignError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", marginTop: "0.5rem" }}>{assignError}</p>}
@@ -355,7 +362,7 @@ export function TicketDetailPage() {
           {isAssignee && (
             <div style={{ marginTop: "1rem" }}>
               <label htmlFor="progress-input" style={{ display: "block", fontWeight: 500, fontSize: "0.875rem", marginBottom: "0.25rem" }}>
-                Submit your progress update
+                {t("tickets.progress.submitUpdate")}
               </label>
               <textarea
                 id="progress-input"
@@ -364,11 +371,11 @@ export function TicketDetailPage() {
                 rows={3}
                 style={{ width: "100%", padding: "0.5rem", border: "1px solid #ccc", borderRadius: 4, fontSize: "0.875rem", resize: "vertical" }}
                 disabled={progressLoading}
-                placeholder="Describe your progress…"
+                placeholder={t("tickets.progress.placeholder")}
               />
               {progressError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", margin: "0.25rem 0 0" }}>{progressError}</p>}
               <button onClick={handleSubmitProgress} disabled={progressLoading} style={{ ...submitBtn, marginTop: "0.5rem" }}>
-                {progressLoading ? "Submitting…" : "Submit Progress"}
+                {progressLoading ? t("tickets.progress.submitting") : t("tickets.progress.submit")}
               </button>
             </div>
           )}
@@ -376,13 +383,13 @@ export function TicketDetailPage() {
 
         {/* Status transitions */}
         <div style={section}>
-          <h2 style={sectionTitle}>Status Transition</h2>
+          <h2 style={sectionTitle}>{t("tickets.detail.statusTransition")}</h2>
           <StatusTransitionButton ticket={ticket} onTransitioned={handleTransitioned} />
         </div>
 
         {/* Activity history */}
         <div style={section}>
-          <h2 style={sectionTitle}>Activity History</h2>
+          <h2 style={sectionTitle}>{t("tickets.detail.activityHistory")}</h2>
           <TicketEventHistory events={eventsData?.items ?? []} />
         </div>
       </main>
@@ -401,6 +408,7 @@ interface AdminAssignModalProps {
 }
 
 function AdminAssignModal({ existingAssigneeIds, selectedUserId, onSelectUser, onAssign, onClose }: AdminAssignModalProps) {
+  const { t } = useTranslation();
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: listUsers,
@@ -411,11 +419,11 @@ function AdminAssignModal({ existingAssigneeIds, selectedUserId, onSelectUser, o
   return (
     <div style={modalOverlay} onClick={onClose}>
       <div style={modalBox} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>Assign user</h3>
+        <h3 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{t("tickets.assign.assignTitle")}</h3>
         {isLoading ? (
-          <p style={{ color: "#888", fontSize: "0.875rem" }}>Loading users…</p>
+          <p style={{ color: "#888", fontSize: "0.875rem" }}>{t("tickets.assign.loadingUsers")}</p>
         ) : available.length === 0 ? (
-          <p style={{ color: "#888", fontSize: "0.875rem" }}>All users are already assigned.</p>
+          <p style={{ color: "#888", fontSize: "0.875rem" }}>{t("tickets.assign.allAssigned")}</p>
         ) : (
           <>
             <select
@@ -423,14 +431,14 @@ function AdminAssignModal({ existingAssigneeIds, selectedUserId, onSelectUser, o
               onChange={(e) => onSelectUser(e.target.value)}
               style={{ width: "100%", padding: "0.4rem 0.5rem", border: "1px solid #ccc", borderRadius: 4, fontSize: "0.875rem", marginBottom: "0.75rem" }}
             >
-              <option value="">— select a user —</option>
+              <option value="">{t("tickets.assign.selectUser")}</option>
               {available.map((u) => (
                 <option key={u.id} value={u.id}>{u.email} ({u.role})</option>
               ))}
             </select>
             <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-              <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-              <button onClick={onAssign} disabled={!selectedUserId} style={submitBtn}>Assign</button>
+              <button onClick={onClose} style={secondaryBtn}>{t("tickets.assign.cancel")}</button>
+              <button onClick={onAssign} disabled={!selectedUserId} style={submitBtn}>{t("tickets.assign.assign")}</button>
             </div>
           </>
         )}

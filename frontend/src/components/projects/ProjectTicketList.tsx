@@ -1,16 +1,18 @@
+import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import type { FilterState } from "../common/FilterBar";
 import { FilterBar } from "../common/FilterBar";
 import { TicketCard } from "../tickets/TicketCard";
 import { listTickets } from "../../api/projects";
 import type { AssigneeSummary } from "../../types";
-import { useState, useMemo } from "react";
 
 interface ProjectTicketListProps {
   projectId: string;
 }
 
 export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterState>({ status: "", assigneeId: "" });
 
   const queryParams = {
@@ -38,8 +40,8 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
     return result;
   }, [data]);
 
-  if (isLoading) return <p>Loading tickets…</p>;
-  if (isError) return <p style={{ color: "#c0392b" }}>Failed to load tickets.</p>;
+  if (isLoading) return <p>{t("tickets.loading")}</p>;
+  if (isError) return <p style={{ color: "#c0392b" }}>{t("tickets.failedToLoad")}</p>;
 
   const tickets = data?.items ?? [];
 

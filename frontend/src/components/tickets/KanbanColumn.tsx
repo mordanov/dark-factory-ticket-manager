@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import type { TicketResponse, TicketStatus, TransitionBlockedError } from "../../types";
 import { WORKFLOW_TRANSITIONS } from "../../types";
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function KanbanColumn({ status, label, color, tickets, projectId }: Props) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<TransitionBlockedError | string | null>(null);
@@ -26,7 +28,6 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
   }
 
   function handleDragLeave(e: React.DragEvent) {
-    // only clear when leaving the column area, not a child element
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
     }
@@ -57,7 +58,7 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
         await queryClient.invalidateQueries({ queryKey: ["tickets", projectId] });
       }
     } catch {
-      setError("Transition failed. Please try again.");
+      setError(t("tickets.detail.transitionError"));
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
           <KanbanCard key={ticket.id} ticket={ticket} />
         ))}
         {tickets.length === 0 && (
-          <p style={emptyMsg}>Drop here</p>
+          <p style={emptyMsg}>{t("tickets.dropHere")}</p>
         )}
       </div>
 

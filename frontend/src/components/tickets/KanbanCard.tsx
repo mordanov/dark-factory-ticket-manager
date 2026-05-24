@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { TicketResponse } from "../../types";
-import { TICKET_TYPE_LABELS } from "../../types";
 
 interface Props {
   ticket: TicketResponse;
 }
 
 export function KanbanCard({ ticket }: Props) {
+  const { t } = useTranslation();
   const pendingAssignees = ticket.assignees.filter((a) => !a.has_progress_update);
 
   const activeFlags = [
@@ -40,7 +41,7 @@ export function KanbanCard({ ticket }: Props) {
       </Link>
 
       <div style={{ fontSize: "0.7rem", color: "#888", marginTop: 4 }}>
-        {TICKET_TYPE_LABELS[ticket.ticket_type]}
+        {t(`tickets.type.${ticket.ticket_type}`)}
       </div>
 
       {ticket.assignees.length > 0 && (
@@ -55,8 +56,8 @@ export function KanbanCard({ ticket }: Props) {
 
       {ticket.tags.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 6 }}>
-          {ticket.tags.slice(0, 3).map((t) => (
-            <span key={t.id} style={tagPill}>{t.name}</span>
+          {ticket.tags.slice(0, 3).map((tg) => (
+            <span key={tg.id} style={tagPill}>{tg.name}</span>
           ))}
           {ticket.tags.length > 3 && (
             <span style={{ ...tagPill, color: "#888", background: "#f0f0f0" }}>+{ticket.tags.length - 3}</span>

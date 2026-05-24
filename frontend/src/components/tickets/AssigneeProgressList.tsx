@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { AssigneeSummary, ProgressUpdateResponse } from "../../types";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function AssigneeProgressList({ assignees, progressItems, currentUserId, isAdmin, onUnassign }: Props) {
+  const { t } = useTranslation();
   const progressByUser = new Map(progressItems.map((p) => [p.user_id, p]));
 
   if (assignees.length === 0) {
@@ -34,7 +36,7 @@ export function AssigneeProgressList({ assignees, progressItems, currentUserId, 
                   <button
                     onClick={() => onUnassign(a.user_id)}
                     style={removeBtn}
-                    title="Remove assignee"
+                    title={t("tickets.assign.removeFailed")}
                   >
                     ✕
                   </button>
