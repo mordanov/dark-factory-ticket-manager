@@ -7,6 +7,7 @@ from src.api.v1 import (
     events,
     progress,
     projects,
+    resources,
     tags,
     tickets,
     transitions,
@@ -25,3 +26,4 @@ router.include_router(progress.router)
 router.include_router(transitions.router)
 router.include_router(events.router)
 router.include_router(tags.router)
+router.include_router(resources.router)

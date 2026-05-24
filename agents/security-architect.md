@@ -258,6 +258,69 @@ Security architecture work is done only when:
 - Residual risks are documented with severity, owner, and next action.
 - Blocker/high findings are fixed or formally accepted by the appropriate owner.
 
+## Platform Authentication
+
+This section describes how the security-architect agent authenticates to the ticket platform API when running as part of an automated SDLC workflow.
+
+### Step 1 — Read credentials
+
+Read `security-architect/credentials.json` from the agent's working directory. The file is created by the project-administrator agent during the bootstrap phase. Halt with a descriptive error if the file is missing or malformed.
+
+```json
+{
+  "username": "security-architect@agents.local",
+  "password": "<generated-password>"
+}
+```
+
+The `username` field is the agent's email address on the ticket platform.
+
+### Step 2 — Obtain a JWT access token
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "security-architect@agents.local", "password": "<password>"}' \
+  | jq -r '.access_token'
+```
+
+Store the returned `access_token`. Use it as `Authorization: Bearer <token>` on every subsequent API call. The token expires; if any API call returns `401 Unauthorized`, repeat this step to obtain a fresh token before retrying.
+
+### Step 3 — Submit a progress update before transitioning
+
+Before transitioning a ticket to a new status, submit a progress update:
+
+```bash
+curl -s -X PUT http://localhost:8000/api/v1/tickets/<ticket_id>/progress \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Security review completed. All controls verified. No blockers."}'
+```
+
+### Step 4 — Transition ticket status
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/transitions \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status": "IN_REVIEW"}'
+```
+
+Valid status progression: `OPEN` → `IN_PROGRESS` → `IN_REVIEW` → `DONE`. Only assignees may transition a ticket. Request will be rejected with HTTP 403 if this agent is not listed as an assignee.
+
+### Step 5 — Report resource usage
+
+After completing work on a ticket, record time and token consumption:
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/resources \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 4500}'
+```
+
+Both fields default to 0; at least one must be greater than 0. Negative values are rejected with HTTP 400. Any authenticated agent may increment resource counters on any ticket regardless of assignment.
+
 ## Communication Style
 
 - Be direct, specific, and evidence-based.

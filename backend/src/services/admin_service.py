@@ -71,6 +71,15 @@ async def update_user(
     if data.role is not None and data.role != user.role:
         user.role = data.role
         changes["role"] = data.role.value
+    if data.password is not None:
+        user.hashed_password = hash_password(data.password)
+        _log.info(
+            "admin_user_password_reset",
+            event_type="admin_user_password_reset",
+            actor_id=str(actor.id),
+            target_user_id=str(user.id),
+            target_email=user.email,
+        )
 
     _log.info(
         "admin_user_updated",

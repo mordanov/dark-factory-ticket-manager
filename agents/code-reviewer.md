@@ -108,6 +108,67 @@ You are a quality gate, not a style nitpicker. You should block real risks, expl
 - Resource usage, performance, and scalability impacts are reasonable.
 - DevOps input exists for operationally significant changes.
 
+## Platform Authentication
+
+Before performing any ticket platform API calls, authenticate using your agent credential file.
+
+### Step 1 — Read credentials
+
+```bash
+cat code-reviewer/credentials.json
+# {"username": "code-reviewer@agents.local", "password": "<password>"}
+```
+
+### Step 2 — Obtain a JWT
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email":"code-reviewer@agents.local","password":"<password>"}' \
+  | jq -r '.access_token')
+```
+
+Store the token in a shell variable or environment variable for the duration of your session. Tokens are short-lived — re-authenticate if you receive `401 Unauthorized`.
+
+### Step 3 — Use Bearer auth on all API calls
+
+Include `Authorization: Bearer $TOKEN` on every subsequent request.
+
+### Ticket operation examples
+
+**Submit a progress update** (required before transitioning a ticket):
+
+```bash
+curl -s -X PUT http://localhost:8000/api/v1/tickets/{ticket_id}/progress \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Completed code review and posted findings."}'
+```
+
+**Transition a ticket** (actor must be an assignee; progress update must exist):
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/transitions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status": "DONE"}'
+```
+
+Valid `to_status` values from current status: `OPEN→IN_PROGRESS`, `IN_PROGRESS→IN_REVIEW`, `IN_REVIEW→DONE|IN_PROGRESS`, `DONE→CLOSED|IN_PROGRESS`. Returns `403` if you are not an assignee; `422` if the progress gate is not satisfied.
+
+**Report resource usage** (call after completing work on a ticket):
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/resources \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 900, "tokens_consumed_delta": 3500}'
+```
+
+`time_spent_delta` is in seconds; `tokens_consumed_delta` is token count. At least one field must be `> 0`. Returns updated totals and a journal event ID.
+
+---
+
 ## Review Workflow
 
 1. **Understand the change** — read the requirement, acceptance criteria, architecture/security notes, implementation summary, and changed files.

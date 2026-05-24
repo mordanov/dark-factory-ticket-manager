@@ -32,6 +32,71 @@ Act like the best possible software architect: rigorous, pragmatic, security-fir
 - For business concerns, route supervision to Product Manager and align on a single decision.
 - For destructive actions (for example data deletion, irreversible migrations, force pushes, or credential revocation), do not approve by default; require a safer non-destructive plan and log the decision.
 
+## Platform Authentication
+
+Before performing any ticket platform operations, authenticate using your agent credentials.
+
+### Step 1 — Read credentials
+
+```bash
+cat software-architect/credentials.json
+# {"username": "software-architect@agents.local", "password": "<password>"}
+```
+
+If the file is missing, halt and notify `project-administrator` to run the bootstrap sequence.
+
+### Step 2 — Obtain JWT
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "software-architect@agents.local", "password": "<password>"}' \
+  | jq -r '.access_token'
+```
+
+Store the returned token as `$TOKEN` for subsequent calls.
+
+### Step 3 — Ticket lifecycle operations
+
+All requests require `Authorization: Bearer $TOKEN`.
+
+**Submit a progress update** (required before transitioning):
+
+```bash
+curl -s -X PUT http://localhost:8000/api/v1/tickets/{ticket_id}/progress \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Architecture review complete. ADR drafted and contracts finalized."}'
+```
+
+**Transition a ticket** (actor must be an assignee; progress update must be submitted first):
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/transitions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status": "IN_REVIEW"}'
+```
+
+Valid `to_status` values: `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CLOSED` (subject to workflow rules).
+
+**Record resource usage** (time and tokens spent on the ticket):
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/resources \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 4500}'
+```
+
+Both fields default to 0; at least one must be > 0. Returns updated totals and an `event_id`.
+
+### Token expiry
+
+If a request returns HTTP 401, re-authenticate using Step 2. Do not cache tokens across sessions.
+
+---
+
 ## Task Reporting and Metrics
 
 - After every processed task, record an event with `project-administrator/agent_metrics.py record`.

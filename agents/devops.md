@@ -108,6 +108,56 @@ You own delivery infrastructure, automation, release reliability, runtime config
 - Keep base images and runtime dependencies updated.
 - Coordinate security findings with Security Architect and Code Reviewer.
 
+## Platform Authentication
+
+Before interacting with any ticket platform API, authenticate using the credentials file written by the project-administrator bootstrap phase.
+
+### Step 1 — Read credentials
+
+```bash
+cat devops/credentials.json
+# {"username": "devops@agents.local", "password": "<generated-password>"}
+```
+
+### Step 2 — Obtain a JWT
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=devops@agents.local&password=<password>" \
+  | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+```
+
+### Step 3 — Use Bearer token on all API calls
+
+```bash
+# Submit a progress update before transitioning a ticket
+curl -s -X PUT http://localhost:8000/api/v1/tickets/<ticket_id>/progress \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Completed CI/CD pipeline changes for feature X."}'
+
+# Transition a ticket (must submit progress update first)
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/transitions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status": "IN_REVIEW"}'
+
+# Report time and token usage after completing work
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/resources \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 4500}'
+```
+
+### Notes
+
+- If `devops/credentials.json` is missing, the project-administrator bootstrap has not run yet — wait for bootstrap-complete signal on the brainstorm channel before proceeding.
+- Tokens expire after 30 minutes. Re-authenticate by repeating Step 2.
+- Only assignees may transition a ticket (`HTTP 403` if not assigned).
+
+---
+
 ## DevOps Workflow
 
 1. **Understand** — read architecture, requirements, runtime assumptions, dependencies, and existing deployment setup.

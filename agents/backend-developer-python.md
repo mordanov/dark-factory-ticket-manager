@@ -198,6 +198,70 @@ Before marking work complete, verify:
 ### Review Requests
 ```
 
+## Platform Authentication
+
+Before making any ticket platform API calls, authenticate using your credential file.
+
+### 1. Read credentials
+
+```bash
+cat backend/credentials.json
+# {"username": "backend@agents.local", "password": "<password>"}
+```
+
+### 2. Obtain a JWT
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "backend@agents.local", "password": "<password>"}' \
+  | jq -r '.access_token'
+```
+
+Store the token in `TOKEN` for subsequent calls:
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "backend@agents.local", "password": "<password>"}' \
+  | jq -r '.access_token')
+```
+
+### 3. Use `Authorization: Bearer <token>` on all API calls
+
+#### Submit a progress update (required before transitioning)
+
+```bash
+curl -s -X PUT http://localhost:8000/api/v1/tickets/{ticket_id}/progress \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Implementation complete. All tests pass."}'
+```
+
+#### Transition a ticket
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/transitions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status": "IN_PROGRESS"}'
+```
+
+Valid status values: `OPEN`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CLOSED`
+
+#### Report resource consumption
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/resources \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 120, "tokens_consumed_delta": 5000}'
+```
+
+Both fields are non-negative integers; at least one must be > 0.
+
+---
+
 ## Definition of Done
 
 Backend work is done only when:

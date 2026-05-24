@@ -210,6 +210,75 @@ async def test_admin_update_user_404(client: AsyncClient, db_session: AsyncSessi
     assert resp.status_code == 404
 
 
+@pytest.mark.asyncio
+async def test_admin_update_user_200_password_reset(client: AsyncClient, db_session: AsyncSession):
+    admin = await _create_user(db_session, f"admin-{uuid4()}@test.com", UserRole.administrator)
+    target_email = f"agent-{uuid4()}@agents.local"
+    target = await _create_user(db_session, target_email)
+    await db_session.commit()
+
+    resp = await client.patch(
+        f"/api/v1/admin/users/{target.id}",
+        json={"password": "newpassword99"},
+        headers=_auth_headers(admin),
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == str(target.id)
+    assert data["email"] == target_email
+
+
+@pytest.mark.asyncio
+async def test_admin_password_reset_login_succeeds(client: AsyncClient, db_session: AsyncSession):
+    """After a password reset via PATCH, the user can log in with the new password."""
+    admin = await _create_user(db_session, f"admin-{uuid4()}@test.com", UserRole.administrator)
+    target_email = f"agent-{uuid4()}@agents.local"
+    target = await _create_user(db_session, target_email)
+    await db_session.commit()
+
+    new_password = "resetpassword42"
+    await client.patch(
+        f"/api/v1/admin/users/{target.id}",
+        json={"password": new_password},
+        headers=_auth_headers(admin),
+    )
+
+    login_resp = await client.post(
+        "/api/v1/auth/token",
+        json={"email": target_email, "password": new_password},
+    )
+    assert login_resp.status_code == 200
+    assert "access_token" in login_resp.json()
+
+
+@pytest.mark.asyncio
+async def test_admin_update_user_422_short_password(client: AsyncClient, db_session: AsyncSession):
+    admin = await _create_user(db_session, f"admin-{uuid4()}@test.com", UserRole.administrator)
+    target = await _create_user(db_session, f"agent-{uuid4()}@agents.local")
+    await db_session.commit()
+
+    resp = await client.patch(
+        f"/api/v1/admin/users/{target.id}",
+        json={"password": "short"},
+        headers=_auth_headers(admin),
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_admin_self_password_reset_403(client: AsyncClient, db_session: AsyncSession):
+    """Admin cannot reset their own password via this endpoint (self-edit guard)."""
+    admin = await _create_user(db_session, f"admin-{uuid4()}@test.com", UserRole.administrator)
+    await db_session.commit()
+
+    resp = await client.patch(
+        f"/api/v1/admin/users/{admin.id}",
+        json={"password": "newpassword99"},
+        headers=_auth_headers(admin),
+    )
+    assert resp.status_code == 403
+
+
 # ── POST /admin/users/{id}/block ──────────────────────────────────────────────
 
 

@@ -258,6 +258,59 @@ Testing work is done only when:
 - Test results are communicated with exact scope and limitations.
 - Release recommendation is explicit.
 
+## Platform Authentication
+
+Before making any ticket platform API calls, authenticate using your agent credential file.
+
+### Step 1 — Read credentials
+
+```bash
+cat autotester/credentials.json
+# {"username": "autotester@agents.local", "password": "<password>"}
+```
+
+### Step 2 — Obtain a JWT
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email":"autotester@agents.local","password":"<password>"}' \
+  | jq -r '.access_token')
+```
+
+Use `Authorization: Bearer $TOKEN` on every subsequent request.
+
+### Step 3 — Submit a progress update (required before transition)
+
+```bash
+curl -s -X PUT http://localhost:8000/api/v1/tickets/{ticket_id}/progress \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Test coverage verified — all contract and integration tests pass."}'
+```
+
+### Step 4 — Transition a ticket (assignees only)
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/transitions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status": "DONE"}'
+```
+
+### Step 5 — Record resource usage
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/resources \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 4500}'
+```
+
+### Token expiry
+
+If an API call returns HTTP 401, re-authenticate using Steps 1–2 to obtain a fresh token.
+
 ## Communication Style
 
 - Be evidence-based and reproducible.

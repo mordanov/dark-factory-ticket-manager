@@ -89,9 +89,8 @@ async def test_transition_invalid_409(client: AsyncClient, db_session: AsyncSess
 
 
 @pytest.mark.asyncio
-async def test_transition_422_non_assignee_missing_progress(
-    client: AsyncClient, db_session: AsyncSession
-):
+async def test_transition_403_non_assignee(client: AsyncClient, db_session: AsyncSession):
+    """Non-assignee is rejected with 403 before the progress gate (T013 RBAC check)."""
     owner, _, ticket = await _setup(db_session)
     outsider = User(
         email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user
@@ -104,12 +103,12 @@ async def test_transition_422_non_assignee_missing_progress(
         json={"to_status": "IN_PROGRESS"},
         headers=_h(outsider),
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_transition_422_admin_missing_progress(client: AsyncClient, db_session: AsyncSession):
-    """Any user (including admin) is blocked by the progress gate when assignees haven't updated."""
+async def test_transition_403_admin_non_assignee(client: AsyncClient, db_session: AsyncSession):
+    """Administrator who is not an assignee is also rejected with 403 (applies to all roles)."""
     owner, _, ticket = await _setup(db_session)
     admin = User(
         email=f"{uuid4()}@t.com",
@@ -124,4 +123,4 @@ async def test_transition_422_admin_missing_progress(client: AsyncClient, db_ses
         json={"to_status": "IN_PROGRESS"},
         headers=_h(admin),
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 403

@@ -263,6 +263,93 @@ Product work is done when:
 - Known gaps are documented as follow-up backlog items.
 - Success metrics or feedback channels are in place when relevant.
 
+## Platform Authentication
+
+When running as an automated agent skill, authenticate to the ticket platform API before performing any ticket operations.
+
+### Step 1 — Wait for bootstrap signal
+
+Before reading credentials or making any ticket platform API call, wait for `project-administrator` to confirm all agent accounts exist. Call immediately after joining the brainstorm project:
+
+```
+mcp__brainstorm__receive_messages(
+  project_id="ticket-manager",
+  agent_name="product-manager",
+  wait=true,
+  timeout_seconds=120
+)
+```
+
+Poll the returned messages until one has `payload.type == "bootstrap-complete"` and `from_agent == "project-administrator"`. If the 120-second timeout expires without receiving that signal, halt with error: `"Bootstrap signal not received from project-administrator within timeout"`.
+
+### Step 2 — Read credentials
+
+```bash
+cat product-manager/credentials.json
+# Expected format: {"username": "product-manager@agents.local", "password": "<generated>"}
+```
+
+Halt with a descriptive error if the file is missing or contains invalid JSON.
+
+### Step 3 — Obtain JWT
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "product-manager@agents.local", "password": "<password>"}' \
+| jq -r '.access_token'
+```
+
+Store the returned `access_token` for all subsequent calls.
+
+### Step 4 — Use Bearer token on all API calls
+
+Pass `Authorization: Bearer <access_token>` on every request.
+
+#### Create a project
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/projects \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "agent-api-sdlc", "description": "Feature 003 SDLC run"}'
+```
+
+#### Create a ticket (with type, spec, tags, and optional assignee)
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/projects/<project_id>/tickets \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "T002: Add Alembic migration 014",
+    "description": "Create 014_add_ticket_resource_fields.py migration",
+    "ticket_type": "task",
+    "ticket_spec": "backend",
+    "tags": ["feature-003", "backend", "migration"]
+  }'
+```
+
+#### Add an assignee to a ticket
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/assignments \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "<agent_user_id>"}'
+```
+
+#### Increment resource counters after completing work
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/resources \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 1500}'
+```
+
+---
+
 ## Communication Style
 
 - Lead with the product decision and rationale.

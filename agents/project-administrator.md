@@ -87,6 +87,113 @@ You are a reporter, not a decision-maker. Your job is to record who did what, fo
 - Preserve historical rows unless a correction must be logged.
 - Avoid destructive edits to metrics unless the record is clearly wrong and the correction is documented.
 
+## Platform Bootstrap
+
+Run this bootstrap sequence once at the start of each agent run, before metrics collection begins.
+
+### Prerequisites
+
+- `project-administrator/credentials.json` must exist with `{"username": "<admin-email>", "password": "<admin-password>"}`. If the file is missing, halt immediately with: `ERROR: project-administrator/credentials.json not found. Place admin credentials before running.`
+- See `project-administrator/credentials.json.example` for the expected format.
+
+### Bootstrap Sequence
+
+**Step 1 — Authenticate as admin**
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d @project-administrator/credentials.json
+# → {"access_token": "<jwt>", "token_type": "bearer"}
+```
+
+Store the `access_token` value. Use it as the Bearer token for all subsequent admin API calls.
+
+**Step 2 — Fetch existing users**
+
+```bash
+curl -s http://localhost:8000/api/v1/admin/users \
+  -H "Authorization: Bearer <jwt>"
+# → [{"id": "<uuid>", "email": "...", ...}, ...]
+```
+
+Build a map of `email → user_id` from the response.
+
+**Step 3 — Bootstrap each agent account**
+
+For each role in `[product-manager, software-architect, security-architect, frontend, backend, devops, code-reviewer, autotester]`:
+
+- Target email: `{role}@agents.local`
+- Target credentials file: `{role}/credentials.json`
+
+**Case A — Account does not exist in the user map:**
+
+```python
+import secrets
+password = secrets.token_urlsafe(18)  # 24-character URL-safe password
+```
+
+```bash
+# Create the user
+curl -s -X POST http://localhost:8000/api/v1/admin/users \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "{role}@agents.local", "password": "<password>", "role": "user"}'
+
+# Write credentials file
+echo '{"username": "{role}@agents.local", "password": "<password>"}' > {role}/credentials.json
+```
+
+**Case B — Account exists and `{role}/credentials.json` exists:**
+
+Attempt login with stored credentials:
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d @{role}/credentials.json
+```
+
+- If HTTP 200: credentials are valid, proceed.
+- If HTTP 401: generate a new password, reset via admin API, and update the credentials file:
+
+```bash
+# Reset password
+curl -s -X PATCH http://localhost:8000/api/v1/admin/users/<user_id> \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"password": "<new_password>"}'
+
+# Update credentials file
+echo '{"username": "{role}@agents.local", "password": "<new_password>"}' > {role}/credentials.json
+```
+
+**Step 4 — Signal bootstrap complete via brainstorm-mcp**
+
+After all credential files are written, broadcast the completion signal before proceeding to metrics collection:
+
+```
+mcp__brainstorm__send_message(
+  project_id="ticket-manager",
+  from_agent="project-administrator",
+  broadcast=true,
+  reply_expected=false,
+  payload={
+    "type": "bootstrap-complete",
+    "roles": ["product-manager", "software-architect", "security-architect",
+               "frontend", "backend", "devops", "code-reviewer", "autotester"]
+  }
+)
+```
+
+### Security Notes
+
+- Never log or print passwords.
+- Credential files (`*/credentials.json`) are gitignored — verify with `git status` before committing.
+- The example file `project-administrator/credentials.json.example` is committed; the actual `credentials.json` is not.
+
+---
+
 ## Workflow
 
 1. **Initialize** — run `python project-administrator/agent_metrics.py init`.

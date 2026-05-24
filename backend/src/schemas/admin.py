@@ -25,6 +25,7 @@ class AdminUserCreate(BaseModel):
 class AdminUserUpdate(BaseModel):
     email: EmailStr | None = None
     role: UserRole | None = None
+    password: str | None = Field(None, min_length=8)
 
 
 class AdminUserListResponse(BaseModel):

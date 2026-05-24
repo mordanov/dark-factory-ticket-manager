@@ -380,7 +380,47 @@ user has logged out. A token blocklist is not implemented in v1 but is tracked f
 | P2 — degraded | 1 hour | DevOps |
 | P3 — non-critical | Next business day | Team Slack channel |
 
-## 11. Post-Incident Follow-Up
+## 11. Agent Credential File Security (F01)
+
+Agent credential files (`{role}/credentials.json`) are excluded from git but require restricted filesystem permissions in production.
+
+### Hardening credential file permissions
+
+After the project-administrator bootstrap phase writes credential files, set permissions to owner-read-only:
+
+```bash
+# Restrict all credential files immediately after bootstrap
+find . -name "credentials.json" -not -path "./.git/*" -exec chmod 600 {} \;
+
+# Verify
+ls -la */credentials.json
+# Expected: -rw------- (600) for each file
+```
+
+### In Ansible / provisioning
+
+```yaml
+- name: Restrict agent credential file permissions
+  file:
+    path: "{{ item }}"
+    mode: "0600"
+  with_fileglob:
+    - "{{ project_root }}/*/credentials.json"
+```
+
+### Monitoring
+
+If a credential file has broader permissions (e.g., 644 or world-readable), it exposes agent passwords to other local users. Check periodically:
+
+```bash
+find . -name "credentials.json" ! -perm 600 -not -path "./.git/*" | grep . && echo "PERMISSIONS TOO BROAD" || echo "OK"
+```
+
+**Status**: Residual risk for v1 local dev. Must be addressed before any multi-user or production deployment.
+
+---
+
+## 12. Post-Incident Follow-Up
 
 After every P1/P2 incident:
 
