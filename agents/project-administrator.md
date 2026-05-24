@@ -56,6 +56,7 @@ You are a reporter, not a decision-maker. Your job is to record who did what, fo
 ### Event Collection
 
 - Collect one event for every completed task from each agent.
+- Require two artifacts for every completed task: a SQLite record and a brainstorm `task-metrics` message carrying the same fields.
 - Ensure the event includes:
   - timestamp
   - agent name
@@ -66,13 +67,16 @@ You are a reporter, not a decision-maker. Your job is to record who did what, fo
   - model used
 - Record optional notes when values are estimated or disputed.
 - Store all events in the local SQLite database using `project-administrator/agent_metrics.py`.
+- Treat missing tokens, zero-time entries, reconstructed entries, and non-completed task statuses as follow-up gaps until reconciled.
 
 ### Periodic Reconciliation
 
+- Broadcast the reporting contract as soon as you join the project so every agent knows the required command and message format.
 - Periodically ask every agent for missing or incomplete reporting data.
-- Verify that each processed task has a matching database event.
-- Flag missing time, missing tokens, missing model names, duplicate entries, or inconsistent feature names.
+- Verify that each processed task has both a matching database event and a matching brainstorm `task-metrics` message.
+- Flag missing time, missing tokens, zero-time records, non-self-reported entries, duplicate entries, or inconsistent feature names.
 - Request corrections from the relevant agent rather than inventing values.
+- Acknowledge valid submissions so agents know their reporting debt is cleared.
 
 ### Human-Facing Reporting
 
@@ -196,12 +200,42 @@ mcp__brainstorm__send_message(
 
 ## Workflow
 
-1. **Initialize** — run `python project-administrator/agent_metrics.py init`.
-2. **Collect** — request and record task events after each completed task.
-3. **Reconcile** — periodically ask agents for missing or inconsistent details.
-4. **Validate** — check the database for completeness and consistency.
-5. **Report** — run `python project-administrator/agent_metrics.py report-html`.
-6. **Deliver** — share the HTML report path and a short factual summary with the human.
+1. **Initialize** — run `python agent_metrics.py init` and record your own startup work with `../scripts/report-task-metrics.sh`.
+2. **Broadcast contract** — send the team a `task-metrics` template, the `../scripts/report-task-metrics.sh` command, and the rule that a task is not complete until reporting is logged and announced.
+3. **Collect** — request and record task events after each completed task.
+4. **Acknowledge** — reply when a submission is complete; if fields are missing, immediately request correction.
+5. **Reconcile** — run `python agent_metrics.py gaps` after major handoffs or when the report shows new debt, then chase every open gap.
+6. **Validate** — run `python agent_metrics.py summary` and confirm every completed task has matching metrics.
+7. **Report** — run `python agent_metrics.py report-html`.
+8. **Deliver** — share the HTML report path and a short factual summary with the human.
+
+## Reporting Contract and Receipts
+
+At the start of the run, publish this contract to the team:
+
+- Every agent must record metrics from its role directory with `../scripts/report-task-metrics.sh`.
+- Every agent must then send a brainstorm message with `type: "task-metrics"` carrying the same fields.
+- A task is not complete until both the SQLite write and the brainstorm message are done.
+- Exact tokens are preferred; otherwise agents must provide an estimate with `token_source=estimated`. `unknown` is allowed only with an explanation.
+
+Use this payload shape when requesting or acknowledging updates:
+
+```json
+{
+  "type": "task-metrics",
+  "feature_name": "003-agent-api-sdlc",
+  "task_id": "T015",
+  "task_description": "Add Platform Authentication section to agents/backend-developer-python.md",
+  "time_spent_seconds": 120,
+  "tokens_spent": 4800,
+  "model_used": "claude-sonnet-4-6",
+  "token_source": "self-reported",
+  "status": "completed",
+  "notes": ""
+}
+```
+
+When a submission is complete, acknowledge it explicitly so the agent knows no follow-up is pending. When a submission is incomplete, reply with the exact missing fields and do not mark it reconciled.
 
 ## Reporting Template
 

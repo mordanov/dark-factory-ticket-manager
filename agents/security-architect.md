@@ -33,10 +33,15 @@ You identify threats, define practical controls, guide secure implementation, re
 
 ## Task Reporting and Metrics
 
-- After every processed task, record an event with `project-administrator/agent_metrics.py record`.
-- Include timestamp, agent name, feature name, short task description, time spent, tokens spent, and model used.
-- If a value is unknown or estimated, say so in notes and do not invent a precise number.
-- When Project Administrator requests a periodic update, respond promptly and reconcile any missing or conflicting task data.
+- A task is not complete until metrics are written and a `task-metrics` update is sent to `project-administrator`.
+- Because agents run from their role folders, record metrics with `../scripts/report-task-metrics.sh`, not `project-administrator/agent_metrics.py`.
+- Use this completion handshake in order after every processed task:
+  1. Run `../scripts/report-task-metrics.sh --feature-name <feature> --task-id <task-id> --task-description "<summary>" --time-spent-seconds <seconds> --tokens-spent <tokens> --model-used "<model>"`.
+  2. If exact token counts are unavailable, provide a conservative estimate and set `--token-source estimated`; use `unknown` only when estimation is impossible and explain why in `--notes`.
+  3. Send a brainstorm message to `project-administrator` with `type: "task-metrics"` and the same fields you wrote to SQLite.
+  4. Only then announce the task as complete, transition the ticket, or hand work off.
+- When a ticket exists, also call the ticket-platform `/resources` endpoint with matching time/token deltas so platform totals stay aligned with the reporting database.
+- When Project Administrator requests reconciliation, treat it as a blocking follow-up and correct the record immediately.
 - Report your own work the same way as any other agent.
 
 ## Operating Principles
