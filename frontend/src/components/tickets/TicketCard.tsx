@@ -1,10 +1,6 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { TicketResponse } from "../../types";
-import {
-  TICKET_STATUS_LABELS,
-  TICKET_TYPE_LABELS,
-  TICKET_SPEC_LABELS,
-} from "../../types";
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: "#2980b9",
@@ -23,6 +19,7 @@ interface TicketCardProps {
 }
 
 export function TicketCard({ ticket }: TicketCardProps) {
+  const { t } = useTranslation();
   const statusColor = STATUS_COLORS[ticket.status] ?? "#7f8c8d";
   const activeFlags = [
     ticket.urgent && { label: "URGENT", color: "#e74c3c", bg: "#fdecea" },
@@ -38,13 +35,13 @@ export function TicketCard({ ticket }: TicketCardProps) {
           {ticket.display_id && (
             <span style={idBadge}>{ticket.display_id}</span>
           )}
-          <span style={typeBadge}>{TICKET_TYPE_LABELS[ticket.ticket_type]}</span>
+          <span style={typeBadge}>{t(`tickets.type.${ticket.ticket_type}`)}</span>
           {ticket.ticket_spec && (
-            <span style={specBadge}>{TICKET_SPEC_LABELS[ticket.ticket_spec]}</span>
+            <span style={specBadge}>{t(`tickets.spec.${ticket.ticket_spec}`)}</span>
           )}
         </div>
         <span style={{ ...statusBadge, background: statusColor, flexShrink: 0 }}>
-          {TICKET_STATUS_LABELS[ticket.status]}
+          {t(`tickets.status.${ticket.status}`)}
         </span>
       </div>
 
@@ -56,7 +53,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
       {/* Timestamps */}
       <div style={metaRow}>
         <span>Created {formatDate(ticket.created_at)}</span>
-        <span style={{ color: "#bbb" }}>·</span>
+        <span style={{ color: "var(--color-text-secondary)" }}>·</span>
         <span>Updated {formatDate(ticket.updated_at)}</span>
       </div>
 
@@ -74,8 +71,8 @@ export function TicketCard({ ticket }: TicketCardProps) {
       {/* Tags */}
       {ticket.tags.length > 0 && (
         <div style={{ marginTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
-          {ticket.tags.map((t) => (
-            <span key={t.id} style={tagPill}>{t.name}</span>
+          {ticket.tags.map((tg) => (
+            <span key={tg.id} style={tagPill}>{tg.name}</span>
           ))}
         </div>
       )}
@@ -95,8 +92,8 @@ export function TicketCard({ ticket }: TicketCardProps) {
 }
 
 const card: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #e0e0e0",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 8,
   padding: "0.875rem 1rem",
   marginBottom: "0.5rem",
@@ -105,9 +102,9 @@ const idBadge: React.CSSProperties = {
   fontFamily: "monospace",
   fontSize: "0.72rem",
   fontWeight: 700,
-  color: "#3355cc",
-  background: "#f0f4ff",
-  border: "1px solid #c5d3f5",
+  color: "var(--color-accent)",
+  background: "var(--color-accent-subtle)",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   padding: "0.1rem 0.4rem",
   whiteSpace: "nowrap",
@@ -115,8 +112,8 @@ const idBadge: React.CSSProperties = {
 const typeBadge: React.CSSProperties = {
   fontSize: "0.72rem",
   fontWeight: 600,
-  color: "#555",
-  background: "#f4f4f4",
+  color: "var(--color-text-secondary)",
+  background: "var(--color-bg)",
   borderRadius: 4,
   padding: "0.1rem 0.4rem",
   textTransform: "capitalize",
@@ -142,7 +139,7 @@ const statusBadge: React.CSSProperties = {
 const titleLink: React.CSSProperties = {
   display: "block",
   fontWeight: 600,
-  color: "#1a1a2e",
+  color: "var(--color-text-primary)",
   fontSize: "0.95rem",
   textDecoration: "none",
   marginBottom: "0.25rem",
@@ -152,13 +149,13 @@ const metaRow: React.CSSProperties = {
   display: "flex",
   gap: "0.4rem",
   fontSize: "0.75rem",
-  color: "#999",
+  color: "var(--color-text-secondary)",
   marginTop: "0.15rem",
 };
 const assigneeChip: React.CSSProperties = {
   display: "inline-block",
-  background: "#dce8f5",
-  color: "#1a5276",
+  background: "var(--color-accent-subtle)",
+  color: "var(--color-accent)",
   borderRadius: 10,
   padding: "0.1rem 0.5rem",
   fontSize: "0.75rem",
@@ -166,8 +163,8 @@ const assigneeChip: React.CSSProperties = {
 };
 const tagPill: React.CSSProperties = {
   display: "inline-block",
-  background: "#e8f0fe",
-  color: "#1a5276",
+  background: "var(--color-accent-subtle)",
+  color: "var(--color-accent)",
   borderRadius: 12,
   padding: "0.1rem 0.5rem",
   fontSize: "0.75rem",

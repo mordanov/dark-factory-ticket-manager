@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { searchTags } from "../../api/tickets";
 import type { TagResponse } from "../../types";
 
@@ -9,6 +10,7 @@ interface TagInputProps {
 }
 
 export function TagInput({ value, onChange, disabled }: TagInputProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState<TagResponse[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -23,7 +25,7 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
     const timer = setTimeout(async () => {
       try {
         const results = await searchTags(input);
-        setSuggestions(results.filter((t) => !value.includes(t.name)));
+        setSuggestions(results.filter((tg) => !value.includes(tg.name)));
         setShowDropdown(true);
       } catch {
         // ignore search errors
@@ -43,7 +45,7 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
   }
 
   function removeTag(name: string) {
-    onChange(value.filter((t) => t !== name));
+    onChange(value.filter((tg) => tg !== name));
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -63,7 +65,12 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
             <span key={tag} style={pill}>
               {tag}
               {!disabled && (
-                <button type="button" onClick={() => removeTag(tag)} style={pillRemove} title={`Remove "${tag}"`}>
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  style={pillRemove}
+                  title={t("tickets.tagInput.remove", { tag })}
+                >
                   ×
                 </button>
               )}
@@ -80,14 +87,14 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-            placeholder="Type tag name, press Enter to add…"
+            placeholder={t("tickets.tagInput.placeholder")}
             style={tagInputStyle}
           />
           {showDropdown && suggestions.length > 0 && (
             <ul style={dropdown}>
-              {suggestions.map((t) => (
-                <li key={t.id} onMouseDown={() => addTag(t.name)} style={dropdownItem}>
-                  {t.name}
+              {suggestions.map((tg) => (
+                <li key={tg.id} onMouseDown={() => addTag(tg.name)} style={dropdownItem}>
+                  {tg.name}
                 </li>
               ))}
             </ul>
@@ -95,7 +102,7 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
         </div>
       )}
       {value.length >= 10 && (
-        <span style={{ fontSize: "0.75rem", color: "#888" }}>Maximum 10 tags reached.</span>
+        <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>{t("tickets.tagInput.maxReached")}</span>
       )}
     </div>
   );
@@ -105,8 +112,8 @@ const pill: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: "0.2rem",
-  background: "#e8f0fe",
-  color: "#1a5276",
+  background: "var(--color-accent-subtle)",
+  color: "var(--color-accent)",
   borderRadius: 12,
   padding: "0.15rem 0.5rem 0.15rem 0.6rem",
   fontSize: "0.78rem",
@@ -116,7 +123,7 @@ const pillRemove: React.CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  color: "#5a7abf",
+  color: "var(--color-accent)",
   fontSize: "1rem",
   padding: 0,
   lineHeight: 1,
@@ -125,17 +132,19 @@ const pillRemove: React.CSSProperties = {
 const tagInputStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.4rem 0.6rem",
-  border: "1px solid #ccc",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.875rem",
+  background: "var(--color-surface)",
+  color: "var(--color-text-primary)",
 };
 const dropdown: React.CSSProperties = {
   position: "absolute",
   top: "100%",
   left: 0,
   right: 0,
-  background: "#fff",
-  border: "1px solid #ddd",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
   listStyle: "none",

@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { TicketResponse } from "../../types";
-import { TICKET_TYPE_LABELS } from "../../types";
 
 interface Props {
   ticket: TicketResponse;
 }
 
 export function KanbanCard({ ticket }: Props) {
+  const { t } = useTranslation();
   const pendingAssignees = ticket.assignees.filter((a) => !a.has_progress_update);
 
   const activeFlags = [
@@ -39,8 +40,8 @@ export function KanbanCard({ ticket }: Props) {
         {ticket.title}
       </Link>
 
-      <div style={{ fontSize: "0.7rem", color: "#888", marginTop: 4 }}>
-        {TICKET_TYPE_LABELS[ticket.ticket_type]}
+      <div style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", marginTop: 4 }}>
+        {t(`tickets.type.${ticket.ticket_type}`)}
       </div>
 
       {ticket.assignees.length > 0 && (
@@ -55,11 +56,11 @@ export function KanbanCard({ ticket }: Props) {
 
       {ticket.tags.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 6 }}>
-          {ticket.tags.slice(0, 3).map((t) => (
-            <span key={t.id} style={tagPill}>{t.name}</span>
+          {ticket.tags.slice(0, 3).map((tg) => (
+            <span key={tg.id} style={tagPill}>{tg.name}</span>
           ))}
           {ticket.tags.length > 3 && (
-            <span style={{ ...tagPill, color: "#888", background: "#f0f0f0" }}>+{ticket.tags.length - 3}</span>
+            <span style={{ ...tagPill, color: "var(--color-text-secondary)", background: "var(--color-bg)" }}>+{ticket.tags.length - 3}</span>
           )}
         </div>
       )}
@@ -77,8 +78,8 @@ export function KanbanCard({ ticket }: Props) {
 }
 
 const card: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #e0e0e0",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 6,
   padding: "10px 12px",
   marginBottom: 8,
@@ -89,7 +90,7 @@ const card: React.CSSProperties = {
 const idLabel: React.CSSProperties = {
   fontFamily: "monospace",
   fontSize: "0.68rem",
-  color: "#3355cc",
+  color: "var(--color-accent)",
   fontWeight: 700,
 };
 const flagDot: React.CSSProperties = {
@@ -105,7 +106,7 @@ const flagDot: React.CSSProperties = {
 } as React.CSSProperties;
 const titleLink: React.CSSProperties = {
   fontWeight: 600,
-  color: "#2c3e50",
+  color: "var(--color-text-primary)",
   textDecoration: "none",
   fontSize: "0.875rem",
   display: "block",
@@ -121,8 +122,8 @@ const avatar: React.CSSProperties = {
   width: 22,
   height: 22,
   borderRadius: "50%",
-  background: "#dce8f5",
-  color: "#1a5276",
+  background: "var(--color-accent-subtle)",
+  color: "var(--color-accent)",
   fontSize: "0.7rem",
   fontWeight: 700,
   display: "flex",
@@ -131,8 +132,8 @@ const avatar: React.CSSProperties = {
   cursor: "default",
 } as React.CSSProperties;
 const tagPill: React.CSSProperties = {
-  background: "#e8f0fe",
-  color: "#1a5276",
+  background: "var(--color-accent-subtle)",
+  color: "var(--color-accent)",
   borderRadius: 8,
   padding: "1px 6px",
   fontSize: "0.68rem",

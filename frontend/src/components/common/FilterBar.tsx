@@ -1,5 +1,5 @@
+import { useTranslation } from "react-i18next";
 import type { TicketStatus, AssigneeSummary } from "../../types";
-import { TICKET_STATUS_LABELS } from "../../types";
 
 export interface FilterState {
   status: TicketStatus | "";
@@ -15,6 +15,8 @@ interface FilterBarProps {
 const ALL_STATUSES: TicketStatus[] = ["OPEN", "IN_PROGRESS", "IN_REVIEW", "DONE", "CLOSED"];
 
 export function FilterBar({ filters, assignees, onChange }: FilterBarProps) {
+  const { t } = useTranslation();
+
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
     onChange({ ...filters, status: e.target.value as TicketStatus | "" });
   }
@@ -26,30 +28,30 @@ export function FilterBar({ filters, assignees, onChange }: FilterBarProps) {
   return (
     <div style={barStyle} role="search" aria-label="Filter tickets">
       <div style={filterGroup}>
-        <label htmlFor="filter-status" style={labelStyle}>Status</label>
+        <label htmlFor="filter-status" style={labelStyle}>{t("filter.status")}</label>
         <select
           id="filter-status"
           value={filters.status}
           onChange={handleStatusChange}
           style={selectStyle}
         >
-          <option value="">All statuses</option>
+          <option value="">{t("filter.allStatuses")}</option>
           {ALL_STATUSES.map((s) => (
-            <option key={s} value={s}>{TICKET_STATUS_LABELS[s]}</option>
+            <option key={s} value={s}>{t(`tickets.status.${s}`)}</option>
           ))}
         </select>
       </div>
 
       {assignees.length > 0 && (
         <div style={filterGroup}>
-          <label htmlFor="filter-assignee" style={labelStyle}>Assignee</label>
+          <label htmlFor="filter-assignee" style={labelStyle}>{t("filter.assignee")}</label>
           <select
             id="filter-assignee"
             value={filters.assigneeId}
             onChange={handleAssigneeChange}
             style={selectStyle}
           >
-            <option value="">All assignees</option>
+            <option value="">{t("filter.allAssignees")}</option>
             {assignees.map((a) => (
               <option key={a.user_id} value={a.user_id}>{a.email}</option>
             ))}
@@ -66,9 +68,9 @@ const barStyle: React.CSSProperties = {
   flexWrap: "wrap",
   marginBottom: "1rem",
   padding: "0.75rem",
-  background: "#fff",
+  background: "var(--color-surface)",
   borderRadius: 6,
-  border: "1px solid #e0e0e0",
+  border: "1px solid var(--color-border)",
 };
 
 const filterGroup: React.CSSProperties = {
@@ -85,7 +87,9 @@ const labelStyle: React.CSSProperties = {
 
 const selectStyle: React.CSSProperties = {
   padding: "0.35rem 0.6rem",
-  border: "1px solid #ccc",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.875rem",
+  background: "var(--color-surface)",
+  color: "var(--color-text-primary)",
 };

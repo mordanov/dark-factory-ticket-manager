@@ -28,6 +28,11 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         nullable=False, server_default=func.now(), onupdate=func.now()
     )
+    blocked_at: Mapped[datetime | None] = mapped_column(nullable=True, default=None)
+
+    @property
+    def is_blocked(self) -> bool:
+        return self.blocked_at is not None
 
     tickets_created = relationship(
         "Ticket", back_populates="creator", foreign_keys="Ticket.created_by"

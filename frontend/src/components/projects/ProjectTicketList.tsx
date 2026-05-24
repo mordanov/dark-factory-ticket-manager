@@ -1,16 +1,18 @@
+import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import type { FilterState } from "../common/FilterBar";
 import { FilterBar } from "../common/FilterBar";
 import { TicketCard } from "../tickets/TicketCard";
 import { listTickets } from "../../api/projects";
 import type { AssigneeSummary } from "../../types";
-import { useState, useMemo } from "react";
 
 interface ProjectTicketListProps {
   projectId: string;
 }
 
 export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterState>({ status: "", assigneeId: "" });
 
   const queryParams = {
@@ -38,8 +40,8 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
     return result;
   }, [data]);
 
-  if (isLoading) return <p>Loading tickets…</p>;
-  if (isError) return <p style={{ color: "#c0392b" }}>Failed to load tickets.</p>;
+  if (isLoading) return <p>{t("tickets.loading")}</p>;
+  if (isError) return <p style={{ color: "var(--color-danger)" }}>{t("tickets.failedToLoad")}</p>;
 
   const tickets = data?.items ?? [];
 
@@ -47,7 +49,7 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
     <div>
       <FilterBar filters={filters} assignees={allAssignees} onChange={setFilters} />
       {tickets.length === 0 ? (
-        <p style={{ color: "#888", textAlign: "center", padding: "2rem 0" }}>
+        <p style={{ color: "var(--color-text-secondary)", textAlign: "center", padding: "2rem 0" }}>
           No tickets match the current filters.
         </p>
       ) : (
@@ -55,7 +57,7 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
           {tickets.map((ticket) => (
             <TicketCard key={ticket.id} ticket={ticket} />
           ))}
-          <p style={{ fontSize: "0.8rem", color: "#888", textAlign: "right" }}>
+          <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", textAlign: "right" }}>
             {data?.total ?? tickets.length} total
           </p>
         </div>

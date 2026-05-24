@@ -1,7 +1,7 @@
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { listAllTickets } from "../../api/projects";
 import type { TicketStatus } from "../../types";
-import { TICKET_STATUS_LABELS } from "../../types";
 import { KanbanColumn } from "../tickets/KanbanColumn";
 
 interface Props {
@@ -19,13 +19,14 @@ const STATUS_COLORS: Record<TicketStatus, string> = {
 };
 
 export function KanbanBoard({ projectId }: Props) {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["tickets", projectId],
     queryFn: () => listAllTickets(projectId),
   });
 
-  if (isLoading) return <p style={{ padding: "2rem", color: "#888" }}>Loading board…</p>;
-  if (isError) return <p style={{ padding: "2rem", color: "#c0392b" }}>Failed to load tickets.</p>;
+  if (isLoading) return <p style={{ padding: "2rem", color: "var(--color-text-secondary)" }}>{t("tickets.loadingBoard")}</p>;
+  if (isError) return <p style={{ padding: "2rem", color: "var(--color-danger)" }}>{t("tickets.failedToLoad")}</p>;
 
   const tickets = data?.items ?? [];
 
@@ -35,9 +36,9 @@ export function KanbanBoard({ projectId }: Props) {
         <KanbanColumn
           key={status}
           status={status}
-          label={TICKET_STATUS_LABELS[status]}
+          label={t(`tickets.status.${status}`)}
           color={STATUS_COLORS[status]}
-          tickets={tickets.filter((t) => t.status === status)}
+          tickets={tickets.filter((tkt) => tkt.status === status)}
           projectId={projectId}
         />
       ))}

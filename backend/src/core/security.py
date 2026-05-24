@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config import settings
 from src.core.database import get_db
 
-_bearer = HTTPBearer()
+_bearer = HTTPBearer(auto_error=False)
 
 ALGORITHM = "HS256"
 
@@ -48,10 +48,17 @@ def decode_access_token(token: str) -> dict[str, Any]:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     from src.models.user import User
+
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     payload = decode_access_token(credentials.credentials)
     user_id: str = payload.get("sub", "")

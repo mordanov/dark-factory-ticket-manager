@@ -135,6 +135,30 @@ export interface TokenResponse {
   refresh_token?: string;
 }
 
+export interface AdminUserResponse {
+  id: string;
+  email: string;
+  role: UserRole;
+  created_at: string;
+  blocked_at: string | null;
+}
+
+export interface AdminUserCreate {
+  email: string;
+  password: string;
+  role: UserRole;
+}
+
+export interface AdminUserUpdate {
+  email?: string;
+  role?: UserRole;
+}
+
+export interface AdminUserListResponse {
+  items: AdminUserResponse[];
+  total: number;
+}
+
 export const WORKFLOW_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
   OPEN: ["IN_PROGRESS"],
   IN_PROGRESS: ["IN_REVIEW"],

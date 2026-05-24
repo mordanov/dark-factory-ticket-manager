@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import type { TicketResponse, TicketStatus, TransitionBlockedError } from "../../types";
 import { WORKFLOW_TRANSITIONS } from "../../types";
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function KanbanColumn({ status, label, color, tickets, projectId }: Props) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<TransitionBlockedError | string | null>(null);
@@ -26,7 +28,6 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
   }
 
   function handleDragLeave(e: React.DragEvent) {
-    // only clear when leaving the column area, not a child element
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
     }
@@ -57,7 +58,7 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
         await queryClient.invalidateQueries({ queryKey: ["tickets", projectId] });
       }
     } catch {
-      setError("Transition failed. Please try again.");
+      setError(t("tickets.detail.transitionError"));
     } finally {
       setLoading(false);
     }
@@ -77,8 +78,8 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
         onDrop={handleDrop}
         style={{
           ...dropZone,
-          background: isDragOver ? "#eef4ff" : "#f0f2f5",
-          border: isDragOver ? "2px dashed #3498db" : "2px solid transparent",
+          background: isDragOver ? "var(--color-accent-subtle)" : "var(--color-bg)",
+          border: isDragOver ? "2px dashed var(--color-accent)" : "2px solid transparent",
           opacity: loading ? 0.6 : 1,
         }}
       >
@@ -86,7 +87,7 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
           <KanbanCard key={ticket.id} ticket={ticket} />
         ))}
         {tickets.length === 0 && (
-          <p style={emptyMsg}>Drop here</p>
+          <p style={emptyMsg}>{t("tickets.dropHere")}</p>
         )}
       </div>
 
@@ -139,15 +140,15 @@ const dot: React.CSSProperties = {
 const columnLabel: React.CSSProperties = {
   fontSize: "0.78rem",
   fontWeight: 700,
-  color: "#555",
+  color: "var(--color-text-secondary)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
 };
 
 const countBadge: React.CSSProperties = {
   marginLeft: "auto",
-  background: "#e0e0e0",
-  color: "#555",
+  background: "var(--color-border)",
+  color: "var(--color-text-secondary)",
   borderRadius: 10,
   padding: "1px 8px",
   fontSize: "0.75rem",
@@ -164,7 +165,7 @@ const dropZone: React.CSSProperties = {
 
 const emptyMsg: React.CSSProperties = {
   textAlign: "center",
-  color: "#bbb",
+  color: "var(--color-text-secondary)",
   fontSize: "0.78rem",
   marginTop: 24,
   pointerEvents: "none",
@@ -176,7 +177,7 @@ const errorBox: React.CSSProperties = {
   border: "1px solid #f5c6c6",
   borderRadius: 6,
   fontSize: "0.78rem",
-  color: "#c0392b",
+  color: "var(--color-danger)",
 };
 
 const dismissBtn: React.CSSProperties = {
@@ -184,7 +185,7 @@ const dismissBtn: React.CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  color: "#c0392b",
+  color: "var(--color-danger)",
   padding: 0,
   fontSize: "0.75rem",
   textDecoration: "underline",

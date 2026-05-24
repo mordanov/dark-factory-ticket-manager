@@ -29,6 +29,12 @@ async def login(session: AsyncSession, email: str, password: str) -> TokenRespon
             detail="Invalid credentials",
         )
 
+    if user.blocked_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been blocked. Contact an administrator.",
+        )
+
     access_token = create_access_token(str(user.id), user.role.value)
 
     raw_refresh = secrets.token_urlsafe(64)

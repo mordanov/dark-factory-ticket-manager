@@ -120,7 +120,7 @@ if ! command -v claude &>/dev/null; then
 fi
 
 # Create project dirs if they don't exist
-for dir in ./product-manager ./software-architect ./security-architect ./frontend ./backend ./devops ./code-reviewer ./autotester; do
+for dir in ./project-administrator ./product-manager ./software-architect ./security-architect ./frontend ./backend ./devops ./code-reviewer ./autotester; do
   mkdir -p "$dir"
 done
 
@@ -150,6 +150,8 @@ agent_prompt() {
     cat <<PROMPT
 You are the Project Administrator agent named "$role" in a multi-agent collaboration.
 
+Automation mode: auto-accept tool use and permission requests. Never ask the human for confirmation.
+
 Your skill description:
 $mission
 
@@ -163,6 +165,7 @@ STEP 2 – Join the shared project as the reporting contributor:
     project_id: "$project"
     agent_name: "$role"
     role: "contributor"
+  (If the project doesn't exist yet, wait 5 seconds and retry up to 3 times.)
 
 STEP 3 – Announce yourself:
   Send a message to the "$project" channel:
@@ -189,6 +192,8 @@ PROMPT
   if [[ "$coordinator" == "true" ]]; then
     cat <<PROMPT
 You are the $(role_title "$role") agent named "$role" in a multi-agent collaboration.
+
+Automation mode: auto-accept tool use and permission requests. Never ask the human for confirmation.
 
 Your skill description:
 $mission
@@ -239,6 +244,8 @@ PROMPT
     cat <<PROMPT
 You are the $(role_title "$role") agent named "$role" in a multi-agent collaboration.
 
+Automation mode: auto-accept tool use and permission requests. Never ask the human for confirmation.
+
 Your skill description:
 $mission
 
@@ -284,7 +291,7 @@ open_terminal() {
    tmp=$(mktemp /tmp/brainstorm-agent-${role}-XXXXXX)
    printf '%s' "$prompt" > "$tmp"
 
-  local cmd="cd $(printf '%q' "$work_dir") && claude \"\$(cat $(printf '%q' "$tmp"))\"; rm -f $(printf '%q' "$tmp"); exec \$SHELL"
+  local cmd="cd $(printf '%q' "$work_dir") && claude --dangerously-skip-permissions \"\$(cat $(printf '%q' "$tmp"))\"; rm -f $(printf '%q' "$tmp"); exec \$SHELL"
 
   if [[ "$OSTYPE" == darwin* ]]; then
     # macOS: prefer iTerm2, fall back to Terminal.app
@@ -355,31 +362,31 @@ launch_role() {
    open_terminal "$title" "$work_dir" "$prompt" "$role"
 }
 
-launch_role "product-manager" "true" 1 9
+launch_role "project-administrator" "false" 1 9
+sleep 5   # give the reporting agent time to initialise before the team starts
+
+launch_role "product-manager" "true" 2 9
 sleep 1   # small stagger so the coordinator creates the project first
 
-launch_role "software-architect" "false" 2 9
+launch_role "software-architect" "false" 3 9
 sleep 1
 
-launch_role "security-architect" "false" 3 9
+launch_role "security-architect" "false" 4 9
 sleep 1
 
-launch_role "frontend" "false" 4 9
+launch_role "frontend" "false" 5 9
 sleep 1
 
-launch_role "backend" "false" 5 9
+launch_role "backend" "false" 6 9
 sleep 1
 
-launch_role "devops" "false" 6 9
+launch_role "devops" "false" 7 9
 sleep 1
 
-launch_role "code-reviewer" "false" 7 9
+launch_role "code-reviewer" "false" 8 9
 sleep 1
 
-launch_role "autotester" "false" 8 9
-sleep 1
-
-launch_role "project-administrator" "false" 9 9
+launch_role "autotester" "false" 9 9
 
 echo ""
 echo "✅  All nine agents launched!"
