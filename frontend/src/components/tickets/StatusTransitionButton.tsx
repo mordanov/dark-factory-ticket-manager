@@ -21,7 +21,7 @@ export function StatusTransitionButton({ ticket, onTransitioned }: StatusTransit
   const [loading, setLoading] = useState<TicketStatus | null>(null);
 
   if (nextStatuses.length === 0) {
-    return <p style={{ color: "#888", fontSize: "0.875rem" }}>{t("tickets.detail.noTransitions")}</p>;
+    return <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{t("tickets.detail.noTransitions")}</p>;
   }
 
   async function handleTransition(toStatus: TicketStatus) {
@@ -79,7 +79,7 @@ export function StatusTransitionButton({ ticket, onTransitioned }: StatusTransit
 
       {blocked && (
         <div role="alert" style={blockedBox}>
-          <p style={{ margin: "0 0 0.5rem", fontWeight: 600, color: "#c0392b" }}>
+          <p style={{ margin: "0 0 0.5rem", fontWeight: 600, color: "var(--color-danger)" }}>
             {blocked.detail}
           </p>
           <p style={{ margin: "0 0 0.25rem", fontSize: "0.875rem" }}>
@@ -98,8 +98,8 @@ export function StatusTransitionButton({ ticket, onTransitioned }: StatusTransit
 
 const transitionBtn: React.CSSProperties = {
   padding: "0.4rem 0.9rem",
-  background: "#0066cc",
-  color: "#fff",
+  background: "var(--color-accent)",
+  color: "var(--color-text-inverse)",
   border: "none",
   borderRadius: 4,
   fontWeight: 600,
@@ -109,7 +109,7 @@ const transitionBtn: React.CSSProperties = {
 
 const errorStyle: React.CSSProperties = {
   marginTop: "0.5rem",
-  color: "#c0392b",
+  color: "var(--color-danger)",
   fontSize: "0.875rem",
 };
 

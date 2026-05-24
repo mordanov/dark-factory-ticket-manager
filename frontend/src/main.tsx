@@ -8,8 +8,8 @@ import { useAuthStore } from "./store/auth";
 import { refresh } from "./api/auth";
 import { useTheme } from "./hooks/useTheme";
 import i18n from "./i18n";
-import "./index.css";
 import "./styles/themes.css";
+import "./index.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,7 +57,7 @@ function SessionRestorer({ children }: { children: React.ReactNode }) {
 
   if (isRestoring) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f2f5", color: "#888" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-bg)", color: "var(--color-text-secondary)" }}>
         Loading…
       </div>
     );

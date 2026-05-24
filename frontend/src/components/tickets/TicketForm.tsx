@@ -88,7 +88,7 @@ export function TicketForm({
       {/* Title */}
       <div style={field}>
         <label htmlFor="ticket-title" style={label}>
-          {t("tickets.form.title")} <span style={{ color: "#c0392b" }}>*</span>
+          {t("tickets.form.title")} <span style={{ color: "var(--color-danger)" }}>*</span>
         </label>
         <input
           id="ticket-title"
@@ -132,13 +132,13 @@ export function TicketForm({
         </div>
         <div>
           <label htmlFor="ticket-spec" style={label}>
-            {t("tickets.form.spec")} <span style={{ color: "#c0392b" }}>*</span>
+            {t("tickets.form.spec")} <span style={{ color: "var(--color-danger)" }}>*</span>
           </label>
           <select
             id="ticket-spec"
             value={ticketSpec}
             onChange={(e) => setTicketSpec(e.target.value as TicketSpec | "")}
-            style={{ ...select, ...(ticketSpec === "" ? { color: "#999" } : {}) }}
+            style={{ ...select, ...(ticketSpec === "" ? { color: "var(--color-text-secondary)" } : {}) }}
             disabled={loading}
           >
             <option value="">{t("tickets.form.specPlaceholder")}</option>
@@ -162,7 +162,7 @@ export function TicketForm({
                 disabled={loading}
                 style={{ accentColor: color, width: 15, height: 15 }}
               />
-              <span style={{ fontWeight: val ? 600 : 400, color: val ? color : "#555", textTransform: "capitalize" }}>
+              <span style={{ fontWeight: val ? 600 : 400, color: val ? color : "var(--color-text-secondary)", textTransform: "capitalize" }}>
                 {name}
               </span>
             </label>
@@ -174,14 +174,14 @@ export function TicketForm({
       {showTags && (
         <div style={field}>
           <label style={label}>
-            {t("tickets.form.tags")} <span style={{ fontWeight: 400, color: "#888" }}>{t("tickets.form.tagsHint")}</span>
+            {t("tickets.form.tags")} <span style={{ fontWeight: 400, color: "var(--color-text-secondary)" }}>{t("tickets.form.tagsHint")}</span>
           </label>
           <TagInput value={tags} onChange={setTags} disabled={loading} />
         </div>
       )}
 
       {error && (
-        <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", margin: "0 0 0.75rem" }}>
+        <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.875rem", margin: "0 0 0.75rem" }}>
           {error}
         </p>
       )}
@@ -218,24 +218,27 @@ const label: React.CSSProperties = {
 const input: React.CSSProperties = {
   width: "100%",
   padding: "0.5rem 0.75rem",
-  border: "1px solid #ccc",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.875rem",
   boxSizing: "border-box",
+  background: "var(--color-surface)",
+  color: "var(--color-text-primary)",
 };
 const select: React.CSSProperties = {
   width: "100%",
   padding: "0.5rem 0.6rem",
-  border: "1px solid #ccc",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.875rem",
-  background: "#fff",
+  background: "var(--color-surface)",
+  color: "var(--color-text-primary)",
   boxSizing: "border-box",
 };
 const submitBtn: React.CSSProperties = {
   padding: "0.5rem 1.25rem",
-  background: "#0066cc",
-  color: "#fff",
+  background: "var(--color-accent)",
+  color: "var(--color-text-inverse)",
   border: "none",
   borderRadius: 4,
   fontWeight: 600,
@@ -244,9 +247,9 @@ const submitBtn: React.CSSProperties = {
 };
 const cancelBtn: React.CSSProperties = {
   padding: "0.5rem 1.25rem",
-  background: "#eee",
-  color: "#333",
-  border: "1px solid #ccc",
+  background: "var(--color-bg)",
+  color: "var(--color-text-primary)",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   cursor: "pointer",
   fontSize: "0.875rem",

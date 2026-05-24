@@ -66,10 +66,10 @@ export function AdminUsersPage() {
     <div style={page}>
       <header style={header}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <Link to="/projects" style={{ color: "#0066cc", fontSize: "0.875rem" }}>
+          <Link to="/projects" style={{ color: "var(--color-accent)", fontSize: "0.875rem" }}>
             {t("nav.backToProjects")}
           </Link>
-          <span style={{ color: "#ccc" }}>/</span>
+          <span style={{ color: "var(--color-border)" }}>/</span>
           <h1 style={{ margin: 0, fontSize: "1.1rem" }}>{t("admin.users.title")}</h1>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -86,13 +86,13 @@ export function AdminUsersPage() {
 
       <main style={main}>
         {actionError && (
-          <p role="alert" style={{ color: "#c0392b", marginBottom: "1rem", fontSize: "0.875rem" }}>
+          <p role="alert" style={{ color: "var(--color-danger)", marginBottom: "1rem", fontSize: "0.875rem" }}>
             {actionError}
           </p>
         )}
 
         {isLoading && <p>{t("admin.users.loading")}</p>}
-        {isError && <p style={{ color: "#c0392b" }}>{t("admin.users.failed")}</p>}
+        {isError && <p style={{ color: "var(--color-danger)" }}>{t("admin.users.failed")}</p>}
 
         {data && (
           <div style={tableCard}>
@@ -118,10 +118,10 @@ export function AdminUsersPage() {
   );
 }
 
-const page: React.CSSProperties = { minHeight: "100vh", background: "#f5f5f5" };
+const page: React.CSSProperties = { minHeight: "100vh", background: "var(--color-bg)" };
 const header: React.CSSProperties = {
-  background: "#fff",
-  borderBottom: "1px solid #e0e0e0",
+  background: "var(--color-surface)",
+  borderBottom: "1px solid var(--color-border)",
   padding: "0.75rem 1.5rem",
   display: "flex",
   justifyContent: "space-between",
@@ -129,15 +129,15 @@ const header: React.CSSProperties = {
 };
 const main: React.CSSProperties = { maxWidth: 900, margin: "0 auto", padding: "1.5rem" };
 const tableCard: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #e0e0e0",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 8,
   overflow: "hidden",
 };
 const createBtn: React.CSSProperties = {
   padding: "0.4rem 0.9rem",
-  background: "#0066cc",
-  color: "#fff",
+  background: "var(--color-accent)",
+  color: "var(--color-text-inverse)",
   border: "none",
   borderRadius: 4,
   fontWeight: 600,

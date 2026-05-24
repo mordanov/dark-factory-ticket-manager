@@ -191,7 +191,7 @@ export function TicketDetailPage() {
 
   if (!ticketId) return null;
   if (isLoading) return <div style={page}><p>{t("tickets.loading")}</p></div>;
-  if (isError || !ticket) return <div style={page}><p style={{ color: "#c0392b" }}>{t("tickets.notFound")}</p></div>;
+  if (isError || !ticket) return <div style={page}><p style={{ color: "var(--color-danger)" }}>{t("tickets.notFound")}</p></div>;
 
   const isCreator = currentUser?.id === ticket.created_by.id;
   const isAssignee = ticket.assignees.some((a) => a.user_id === currentUser?.id);
@@ -208,7 +208,7 @@ export function TicketDetailPage() {
   return (
     <div style={page}>
       <header style={{ ...header, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Link to={`/projects/${ticket.project_id}`} style={{ color: "#0066cc", fontSize: "0.875rem" }}>
+        <Link to={`/projects/${ticket.project_id}`} style={{ color: "var(--color-accent)", fontSize: "0.875rem" }}>
           {t("nav.backToProject")}
         </Link>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -245,7 +245,7 @@ export function TicketDetailPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
                 <div style={{ flex: 1 }}>
                   {ticket.display_id && (
-                    <div style={{ fontFamily: "monospace", fontSize: "0.78rem", fontWeight: 700, color: "#3355cc", marginBottom: "0.3rem" }}>
+                    <div style={{ fontFamily: "monospace", fontSize: "0.78rem", fontWeight: 700, color: "var(--color-accent)", marginBottom: "0.3rem" }}>
                       {ticket.display_id}
                     </div>
                   )}
@@ -272,17 +272,17 @@ export function TicketDetailPage() {
               </div>
 
               {ticket.description && (
-                <p style={{ marginTop: "0.75rem", color: "#444", lineHeight: 1.5 }}>
+                <p style={{ marginTop: "0.75rem", color: "var(--color-text-primary)", lineHeight: 1.5 }}>
                   {ticket.description}
                 </p>
               )}
-              <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "#888" }}>
+              <div style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
                 {t("tickets.detail.createdBy", { email: ticket.created_by.email })}
               </div>
               {ticket.parent_ticket_id && (
-                <div style={{ fontSize: "0.8rem", color: "#888", marginTop: "0.25rem" }}>
+                <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
                   {t("tickets.detail.followUpOf")}{" "}
-                  <Link to={`/tickets/${ticket.parent_ticket_id}`} style={{ color: "#0066cc" }}>
+                  <Link to={`/tickets/${ticket.parent_ticket_id}`} style={{ color: "var(--color-accent)" }}>
                     {t("tickets.detail.parentTicket")}
                   </Link>
                 </div>
@@ -298,7 +298,7 @@ export function TicketDetailPage() {
                   {showFollowUpForm ? t("tickets.detail.cancelFollowUp") : t("tickets.detail.addFollowUp")}
                 </button>
               </div>
-              {deleteError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", marginTop: "0.5rem" }}>{deleteError}</p>}
+              {deleteError && <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.875rem", marginTop: "0.5rem" }}>{deleteError}</p>}
             </>
           )}
         </div>
@@ -325,7 +325,7 @@ export function TicketDetailPage() {
               handleTagChange(newTags);
             }}
           />
-          {tagError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", marginTop: "0.5rem" }}>{tagError}</p>}
+          {tagError && <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.875rem", marginTop: "0.5rem" }}>{tagError}</p>}
         </div>
 
         {/* Assignees and progress */}
@@ -346,7 +346,7 @@ export function TicketDetailPage() {
               <button onClick={() => setShowAssignModal(true)} style={secondaryBtn}>{t("tickets.assign.assignUser")}</button>
             )}
           </div>
-          {assignError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", marginTop: "0.5rem" }}>{assignError}</p>}
+          {assignError && <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.875rem", marginTop: "0.5rem" }}>{assignError}</p>}
 
           {showAssignModal && (
             <AdminAssignModal
@@ -369,11 +369,11 @@ export function TicketDetailPage() {
                 value={progressInput}
                 onChange={(e) => setProgressInput(e.target.value)}
                 rows={3}
-                style={{ width: "100%", padding: "0.5rem", border: "1px solid #ccc", borderRadius: 4, fontSize: "0.875rem", resize: "vertical" }}
+                style={{ width: "100%", padding: "0.5rem", border: "1px solid var(--color-border)", borderRadius: 4, fontSize: "0.875rem", resize: "vertical", background: "var(--color-surface)", color: "var(--color-text-primary)" }}
                 disabled={progressLoading}
                 placeholder={t("tickets.progress.placeholder")}
               />
-              {progressError && <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", margin: "0.25rem 0 0" }}>{progressError}</p>}
+              {progressError && <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.875rem", margin: "0.25rem 0 0" }}>{progressError}</p>}
               <button onClick={handleSubmitProgress} disabled={progressLoading} style={{ ...submitBtn, marginTop: "0.5rem" }}>
                 {progressLoading ? t("tickets.progress.submitting") : t("tickets.progress.submit")}
               </button>
@@ -421,15 +421,15 @@ function AdminAssignModal({ existingAssigneeIds, selectedUserId, onSelectUser, o
       <div style={modalBox} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ margin: "0 0 1rem", fontSize: "1rem" }}>{t("tickets.assign.assignTitle")}</h3>
         {isLoading ? (
-          <p style={{ color: "#888", fontSize: "0.875rem" }}>{t("tickets.assign.loadingUsers")}</p>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{t("tickets.assign.loadingUsers")}</p>
         ) : available.length === 0 ? (
-          <p style={{ color: "#888", fontSize: "0.875rem" }}>{t("tickets.assign.allAssigned")}</p>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{t("tickets.assign.allAssigned")}</p>
         ) : (
           <>
             <select
               value={selectedUserId}
               onChange={(e) => onSelectUser(e.target.value)}
-              style={{ width: "100%", padding: "0.4rem 0.5rem", border: "1px solid #ccc", borderRadius: 4, fontSize: "0.875rem", marginBottom: "0.75rem" }}
+              style={{ width: "100%", padding: "0.4rem 0.5rem", border: "1px solid var(--color-border)", borderRadius: 4, fontSize: "0.875rem", marginBottom: "0.75rem", background: "var(--color-surface)", color: "var(--color-text-primary)" }}
             >
               <option value="">{t("tickets.assign.selectUser")}</option>
               {available.map((u) => (
@@ -454,16 +454,16 @@ function statusColor(status: string): string {
   return map[status] ?? "#7f8c8d";
 }
 
-const page: React.CSSProperties = { minHeight: "100vh", background: "#f5f5f5" };
+const page: React.CSSProperties = { minHeight: "100vh", background: "var(--color-bg)" };
 const header: React.CSSProperties = {
-  background: "#fff",
-  borderBottom: "1px solid #e0e0e0",
+  background: "var(--color-surface)",
+  borderBottom: "1px solid var(--color-border)",
   padding: "0.75rem 1.5rem",
 };
 const main: React.CSSProperties = { maxWidth: 800, margin: "0 auto", padding: "1.5rem" };
 const section: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #e0e0e0",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 6,
   padding: "1.25rem",
   marginBottom: "1rem",
@@ -480,28 +480,29 @@ const statusBadge: React.CSSProperties = {
 const metaChip: React.CSSProperties = {
   fontSize: "0.75rem",
   fontWeight: 600,
-  color: "#555",
-  background: "#f4f4f4",
+  color: "var(--color-text-secondary)",
+  background: "var(--color-bg)",
   borderRadius: 4,
   padding: "0.15rem 0.5rem",
 };
 const secondaryBtn: React.CSSProperties = {
   padding: "0.35rem 0.75rem",
-  background: "#fff",
-  border: "1px solid #ccc",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.875rem",
+  color: "var(--color-text-primary)",
   cursor: "pointer",
 };
 const dangerBtn: React.CSSProperties = {
   ...secondaryBtn,
-  color: "#c0392b",
-  borderColor: "#c0392b",
+  color: "var(--color-danger)",
+  borderColor: "var(--color-danger)",
 };
 const submitBtn: React.CSSProperties = {
   padding: "0.4rem 0.9rem",
-  background: "#0066cc",
-  color: "#fff",
+  background: "var(--color-accent)",
+  color: "var(--color-text-inverse)",
   border: "none",
   borderRadius: 4,
   fontWeight: 600,
@@ -518,7 +519,7 @@ const modalOverlay: React.CSSProperties = {
   zIndex: 1000,
 };
 const modalBox: React.CSSProperties = {
-  background: "#fff",
+  background: "var(--color-surface)",
   borderRadius: 8,
   padding: "1.5rem",
   width: "100%",

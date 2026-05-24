@@ -13,7 +13,7 @@ export function UserTable({ users, currentUserId, onEdit, onBlock, onUnblock }: 
   const { t } = useTranslation();
 
   if (users.length === 0) {
-    return <p style={{ color: "#888", fontSize: "0.875rem" }}>{t("admin.users.empty")}</p>;
+    return <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{t("admin.users.empty")}</p>;
   }
 
   return (
@@ -32,7 +32,7 @@ export function UserTable({ users, currentUserId, onEdit, onBlock, onUnblock }: 
             const isBlocked = user.blocked_at !== null;
             const isSelf = user.id === currentUserId;
             return (
-              <tr key={user.id} style={isSelf ? { ...tr, background: "#fafafa" } : tr}>
+              <tr key={user.id} style={isSelf ? { ...tr, background: "var(--color-bg)" } : tr}>
                 <td style={td}>{user.email}</td>
                 <td style={td}>
                   <span style={roleBadge}>
@@ -78,16 +78,16 @@ const table: React.CSSProperties = {
 };
 const th: React.CSSProperties = {
   padding: "0.6rem 0.75rem",
-  background: "#f5f5f5",
-  borderBottom: "2px solid #e0e0e0",
+  background: "var(--color-bg)",
+  borderBottom: "2px solid var(--color-border)",
   textAlign: "left",
   fontWeight: 600,
-  color: "#555",
+  color: "var(--color-text-secondary)",
   fontSize: "0.8rem",
   whiteSpace: "nowrap",
 };
 const tr: React.CSSProperties = {
-  borderBottom: "1px solid #f0f0f0",
+  borderBottom: "1px solid var(--color-border)",
 };
 const td: React.CSSProperties = {
   padding: "0.6rem 0.75rem",
@@ -97,8 +97,8 @@ const roleBadge: React.CSSProperties = {
   display: "inline-block",
   padding: "0.1rem 0.5rem",
   borderRadius: 4,
-  background: "#f0f4ff",
-  color: "#3355cc",
+  background: "var(--color-accent-subtle)",
+  color: "var(--color-accent)",
   fontSize: "0.78rem",
   fontWeight: 600,
 };
@@ -118,10 +118,10 @@ const actionGroup: React.CSSProperties = {
 };
 const actionBtn: React.CSSProperties = {
   padding: "0.25rem 0.6rem",
-  background: "#fff",
-  border: "1px solid #ccc",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.8rem",
   cursor: "pointer",
-  color: "#555",
+  color: "var(--color-text-secondary)",
 };

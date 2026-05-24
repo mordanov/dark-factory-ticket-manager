@@ -59,7 +59,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
         <form onSubmit={handleSubmit} noValidate>
           <div style={fieldStyle}>
             <label htmlFor="user-email" style={labelStyle}>
-              {t("admin.users.form.email")} <span style={{ color: "#c0392b" }}>*</span>
+              {t("admin.users.form.email")} <span style={{ color: "var(--color-danger)" }}>*</span>
             </label>
             <input
               id="user-email"
@@ -75,7 +75,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
           {!isEdit && (
             <div style={fieldStyle}>
               <label htmlFor="user-password" style={labelStyle}>
-                {t("admin.users.form.password")} <span style={{ color: "#c0392b" }}>*</span>
+                {t("admin.users.form.password")} <span style={{ color: "var(--color-danger)" }}>*</span>
               </label>
               <input
                 id="user-password"
@@ -87,7 +87,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                 autoComplete="new-password"
                 minLength={8}
               />
-              <span style={{ fontSize: "0.75rem", color: "#888", marginTop: "0.2rem", display: "block" }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginTop: "0.2rem", display: "block" }}>
                 {t("admin.users.form.passwordHint")}
               </span>
             </div>
@@ -99,7 +99,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
               id="user-role"
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
-              style={{ ...inputStyle, background: "#fff" }}
+              style={{ ...inputStyle, background: "var(--color-surface)" }}
               disabled={loading}
             >
               {ROLES.map((r) => (
@@ -109,7 +109,7 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
           </div>
 
           {error && (
-            <p role="alert" style={{ color: "#c0392b", fontSize: "0.875rem", margin: "0 0 0.75rem" }}>
+            <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.875rem", margin: "0 0 0.75rem" }}>
               {error}
             </p>
           )}
@@ -140,7 +140,7 @@ const overlay: React.CSSProperties = {
   zIndex: 1000,
 };
 const modal: React.CSSProperties = {
-  background: "#fff",
+  background: "var(--color-surface)",
   borderRadius: 8,
   padding: "1.5rem",
   width: "100%",
@@ -162,24 +162,26 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.5rem 0.75rem",
-  border: "1px solid #ccc",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.875rem",
   boxSizing: "border-box",
+  background: "var(--color-surface)",
+  color: "var(--color-text-primary)",
 };
 const cancelBtn: React.CSSProperties = {
   padding: "0.45rem 1rem",
-  background: "#eee",
-  color: "#333",
-  border: "1px solid #ccc",
+  background: "var(--color-bg)",
+  color: "var(--color-text-primary)",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   cursor: "pointer",
   fontSize: "0.875rem",
 };
 const submitBtn: React.CSSProperties = {
   padding: "0.45rem 1.25rem",
-  background: "#0066cc",
-  color: "#fff",
+  background: "var(--color-accent)",
+  color: "var(--color-text-inverse)",
   border: "none",
   borderRadius: 4,
   fontWeight: 600,

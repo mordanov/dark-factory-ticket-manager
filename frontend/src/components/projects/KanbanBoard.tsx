@@ -25,8 +25,8 @@ export function KanbanBoard({ projectId }: Props) {
     queryFn: () => listAllTickets(projectId),
   });
 
-  if (isLoading) return <p style={{ padding: "2rem", color: "#888" }}>{t("tickets.loadingBoard")}</p>;
-  if (isError) return <p style={{ padding: "2rem", color: "#c0392b" }}>{t("tickets.failedToLoad")}</p>;
+  if (isLoading) return <p style={{ padding: "2rem", color: "var(--color-text-secondary)" }}>{t("tickets.loadingBoard")}</p>;
+  if (isError) return <p style={{ padding: "2rem", color: "var(--color-danger)" }}>{t("tickets.failedToLoad")}</p>;
 
   const tickets = data?.items ?? [];
 

@@ -14,7 +14,7 @@ export function AssigneeProgressList({ assignees, progressItems, currentUserId, 
   const progressByUser = new Map(progressItems.map((p) => [p.user_id, p]));
 
   if (assignees.length === 0) {
-    return <p style={{ color: "#888", fontSize: "0.875rem" }}>No assignees.</p>;
+    return <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>No assignees.</p>;
   }
 
   return (
@@ -44,7 +44,7 @@ export function AssigneeProgressList({ assignees, progressItems, currentUserId, 
               </div>
             </div>
             {progress && (
-              <p style={{ margin: "0.35rem 0 0", fontSize: "0.875rem", color: "#444" }}>
+              <p style={{ margin: "0.35rem 0 0", fontSize: "0.875rem", color: "var(--color-text-primary)" }}>
                 {progress.content}
               </p>
             )}
@@ -56,8 +56,8 @@ export function AssigneeProgressList({ assignees, progressItems, currentUserId, 
 }
 
 const rowStyle: React.CSSProperties = {
-  background: "#f9f9f9",
-  border: "1px solid #e8e8e8",
+  background: "var(--color-bg)",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   padding: "0.6rem 0.75rem",
   marginBottom: "0.5rem",
@@ -74,10 +74,10 @@ const badge: React.CSSProperties = {
 
 const removeBtn: React.CSSProperties = {
   background: "none",
-  border: "1px solid #e0e0e0",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   cursor: "pointer",
-  color: "#999",
+  color: "var(--color-text-secondary)",
   fontSize: "0.7rem",
   padding: "2px 6px",
   lineHeight: 1,

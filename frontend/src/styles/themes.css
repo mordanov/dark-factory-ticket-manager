@@ -9,6 +9,7 @@
   --color-text-inverse: #ffffff;
   --color-accent: #0066cc;
   --color-accent-hover: #0052a3;
+  --color-accent-subtle: #e8f0fe;
   --color-danger: #c0392b;
   --color-success: #27ae60;
   --color-warning: #e67e22;
@@ -24,6 +25,7 @@
   --color-text-inverse: #1a1a2e;
   --color-accent: #4d9de0;
   --color-accent-hover: #6aaee8;
+  --color-accent-subtle: #1a2a4a;
   --color-danger: #e74c3c;
   --color-success: #2ecc71;
   --color-warning: #f39c12;
@@ -39,6 +41,7 @@
   --color-text-inverse: #fdf6e3;
   --color-accent: #268bd2;
   --color-accent-hover: #1a6fa8;
+  --color-accent-subtle: #d6eaf8;
   --color-danger: #dc322f;
   --color-success: #859900;
   --color-warning: #b58900;
@@ -54,6 +57,7 @@
   --color-text-inverse: #1b2b34;
   --color-accent: #6699cc;
   --color-accent-hover: #7aabd9;
+  --color-accent-subtle: #162840;
   --color-danger: #ec5f67;
   --color-success: #99c794;
   --color-warning: #fac863;
@@ -69,6 +73,7 @@
   --color-text-inverse: #000000;
   --color-accent: #ffff00;
   --color-accent-hover: #e6e600;
+  --color-accent-subtle: #1a1a00;
   --color-danger: #ff4444;
   --color-success: #00ff00;
   --color-warning: #ff8800;
@@ -84,6 +89,7 @@
   --color-text-inverse: #faf0e6;
   --color-accent: #c0440c;
   --color-accent-hover: #a03008;
+  --color-accent-subtle: #fde8d8;
   --color-danger: #b91c1c;
   --color-success: #15803d;
   --color-warning: #b45309;

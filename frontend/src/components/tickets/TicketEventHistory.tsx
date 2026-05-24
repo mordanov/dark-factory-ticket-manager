@@ -9,7 +9,7 @@ export function TicketEventHistory({ events }: TicketEventHistoryProps) {
   const { t } = useTranslation();
 
   if (events.length === 0) {
-    return <p style={{ color: "#888", fontSize: "0.875rem" }}>{t("tickets.events.noActivity")}</p>;
+    return <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{t("tickets.events.noActivity")}</p>;
   }
 
   return (
@@ -23,17 +23,17 @@ export function TicketEventHistory({ events }: TicketEventHistoryProps) {
                 {t(labelKey, { defaultValue: event.event_type })}
               </span>
               <span
-                style={{ fontSize: "0.8rem", color: "#888" }}
+                style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}
                 title={new Date(event.occurred_at).toLocaleString()}
               >
                 {formatRelativeTime(event.occurred_at, t)}
               </span>
             </div>
-            <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "0.15rem" }}>
+            <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: "0.15rem" }}>
               {t("tickets.events.by", { email: event.actor.email })}
             </div>
             {event.new_state && (
-              <div style={{ marginTop: "0.25rem", fontSize: "0.8rem", color: "#555" }}>
+              <div style={{ marginTop: "0.25rem", fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
                 {renderStateChange(event)}
               </div>
             )}
@@ -72,5 +72,5 @@ function renderStateChange(event: TicketEventResponse): string | null {
 const eventRow: React.CSSProperties = {
   paddingBottom: "0.75rem",
   marginBottom: "0.75rem",
-  borderBottom: "1px solid #eee",
+  borderBottom: "1px solid var(--color-border)",
 };

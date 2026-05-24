@@ -102,7 +102,7 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
         </div>
       )}
       {value.length >= 10 && (
-        <span style={{ fontSize: "0.75rem", color: "#888" }}>{t("tickets.tagInput.maxReached")}</span>
+        <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>{t("tickets.tagInput.maxReached")}</span>
       )}
     </div>
   );
@@ -112,8 +112,8 @@ const pill: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: "0.2rem",
-  background: "#e8f0fe",
-  color: "#1a5276",
+  background: "var(--color-accent-subtle)",
+  color: "var(--color-accent)",
   borderRadius: 12,
   padding: "0.15rem 0.5rem 0.15rem 0.6rem",
   fontSize: "0.78rem",
@@ -123,7 +123,7 @@ const pillRemove: React.CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  color: "#5a7abf",
+  color: "var(--color-accent)",
   fontSize: "1rem",
   padding: 0,
   lineHeight: 1,
@@ -132,17 +132,19 @@ const pillRemove: React.CSSProperties = {
 const tagInputStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.4rem 0.6rem",
-  border: "1px solid #ccc",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.875rem",
+  background: "var(--color-surface)",
+  color: "var(--color-text-primary)",
 };
 const dropdown: React.CSSProperties = {
   position: "absolute",
   top: "100%",
   left: 0,
   right: 0,
-  background: "#fff",
-  border: "1px solid #ddd",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
   listStyle: "none",

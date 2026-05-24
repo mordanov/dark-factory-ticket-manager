@@ -53,10 +53,10 @@ export function ProjectPage() {
     <div style={page}>
       <header style={header}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <Link to="/projects" style={{ color: "#0066cc", fontSize: "0.875rem" }}>
+          <Link to="/projects" style={{ color: "var(--color-accent)", fontSize: "0.875rem" }}>
             {t("nav.backToProjects")}
           </Link>
-          <span style={{ color: "#ccc" }}>/</span>
+          <span style={{ color: "var(--color-border)" }}>/</span>
           <h1 style={{ margin: 0, fontSize: "1.1rem" }}>
             {project?.name ?? "Project"}
           </h1>
@@ -105,10 +105,10 @@ export function ProjectPage() {
   );
 }
 
-const page: React.CSSProperties = { minHeight: "100vh", background: "#f5f5f5" };
+const page: React.CSSProperties = { minHeight: "100vh", background: "var(--color-bg)" };
 const header: React.CSSProperties = {
-  background: "#fff",
-  borderBottom: "1px solid #e0e0e0",
+  background: "var(--color-surface)",
+  borderBottom: "1px solid var(--color-border)",
   padding: "0.75rem 1.5rem",
   display: "flex",
   justifyContent: "space-between",
@@ -117,16 +117,16 @@ const header: React.CSSProperties = {
 const main: React.CSSProperties = { maxWidth: 900, margin: "0 auto", padding: "1.5rem" };
 const mainBoard: React.CSSProperties = { padding: "1.5rem" };
 const formCard: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #e0e0e0",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: 6,
   padding: "1.25rem",
   marginBottom: "1.25rem",
 };
 const createBtn: React.CSSProperties = {
   padding: "0.4rem 0.9rem",
-  background: "#0066cc",
-  color: "#fff",
+  background: "var(--color-accent)",
+  color: "var(--color-text-inverse)",
   border: "none",
   borderRadius: 4,
   fontWeight: 600,
@@ -135,21 +135,21 @@ const createBtn: React.CSSProperties = {
 };
 const viewToggle: React.CSSProperties = {
   display: "flex",
-  border: "1px solid #d0d0d0",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   overflow: "hidden",
 };
 const viewBtn: React.CSSProperties = {
   padding: "0.3rem 0.75rem",
-  background: "#fff",
+  background: "var(--color-surface)",
   border: "none",
-  borderRight: "1px solid #d0d0d0",
+  borderRight: "1px solid var(--color-border)",
   cursor: "pointer",
   fontSize: "0.8rem",
-  color: "#555",
+  color: "var(--color-text-secondary)",
 };
 const viewBtnActive: React.CSSProperties = {
-  background: "#eef4ff",
-  color: "#0066cc",
+  background: "var(--color-accent-subtle)",
+  color: "var(--color-accent)",
   fontWeight: 600,
 };

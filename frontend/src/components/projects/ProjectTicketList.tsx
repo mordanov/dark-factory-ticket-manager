@@ -41,7 +41,7 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
   }, [data]);
 
   if (isLoading) return <p>{t("tickets.loading")}</p>;
-  if (isError) return <p style={{ color: "#c0392b" }}>{t("tickets.failedToLoad")}</p>;
+  if (isError) return <p style={{ color: "var(--color-danger)" }}>{t("tickets.failedToLoad")}</p>;
 
   const tickets = data?.items ?? [];
 
@@ -49,7 +49,7 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
     <div>
       <FilterBar filters={filters} assignees={allAssignees} onChange={setFilters} />
       {tickets.length === 0 ? (
-        <p style={{ color: "#888", textAlign: "center", padding: "2rem 0" }}>
+        <p style={{ color: "var(--color-text-secondary)", textAlign: "center", padding: "2rem 0" }}>
           No tickets match the current filters.
         </p>
       ) : (
@@ -57,7 +57,7 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
           {tickets.map((ticket) => (
             <TicketCard key={ticket.id} ticket={ticket} />
           ))}
-          <p style={{ fontSize: "0.8rem", color: "#888", textAlign: "right" }}>
+          <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", textAlign: "right" }}>
             {data?.total ?? tickets.length} total
           </p>
         </div>

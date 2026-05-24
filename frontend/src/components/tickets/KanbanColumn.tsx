@@ -78,8 +78,8 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
         onDrop={handleDrop}
         style={{
           ...dropZone,
-          background: isDragOver ? "#eef4ff" : "#f0f2f5",
-          border: isDragOver ? "2px dashed #3498db" : "2px solid transparent",
+          background: isDragOver ? "var(--color-accent-subtle)" : "var(--color-bg)",
+          border: isDragOver ? "2px dashed var(--color-accent)" : "2px solid transparent",
           opacity: loading ? 0.6 : 1,
         }}
       >
@@ -140,15 +140,15 @@ const dot: React.CSSProperties = {
 const columnLabel: React.CSSProperties = {
   fontSize: "0.78rem",
   fontWeight: 700,
-  color: "#555",
+  color: "var(--color-text-secondary)",
   textTransform: "uppercase",
   letterSpacing: "0.06em",
 };
 
 const countBadge: React.CSSProperties = {
   marginLeft: "auto",
-  background: "#e0e0e0",
-  color: "#555",
+  background: "var(--color-border)",
+  color: "var(--color-text-secondary)",
   borderRadius: 10,
   padding: "1px 8px",
   fontSize: "0.75rem",
@@ -165,7 +165,7 @@ const dropZone: React.CSSProperties = {
 
 const emptyMsg: React.CSSProperties = {
   textAlign: "center",
-  color: "#bbb",
+  color: "var(--color-text-secondary)",
   fontSize: "0.78rem",
   marginTop: 24,
   pointerEvents: "none",
@@ -177,7 +177,7 @@ const errorBox: React.CSSProperties = {
   border: "1px solid #f5c6c6",
   borderRadius: 6,
   fontSize: "0.78rem",
-  color: "#c0392b",
+  color: "var(--color-danger)",
 };
 
 const dismissBtn: React.CSSProperties = {
@@ -185,7 +185,7 @@ const dismissBtn: React.CSSProperties = {
   background: "none",
   border: "none",
   cursor: "pointer",
-  color: "#c0392b",
+  color: "var(--color-danger)",
   padding: 0,
   fontSize: "0.75rem",
   textDecoration: "underline",

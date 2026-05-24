@@ -68,9 +68,9 @@ const barStyle: React.CSSProperties = {
   flexWrap: "wrap",
   marginBottom: "1rem",
   padding: "0.75rem",
-  background: "#fff",
+  background: "var(--color-surface)",
   borderRadius: 6,
-  border: "1px solid #e0e0e0",
+  border: "1px solid var(--color-border)",
 };
 
 const filterGroup: React.CSSProperties = {
@@ -87,7 +87,9 @@ const labelStyle: React.CSSProperties = {
 
 const selectStyle: React.CSSProperties = {
   padding: "0.35rem 0.6rem",
-  border: "1px solid #ccc",
+  border: "1px solid var(--color-border)",
   borderRadius: 4,
   fontSize: "0.875rem",
+  background: "var(--color-surface)",
+  color: "var(--color-text-primary)",
 };
