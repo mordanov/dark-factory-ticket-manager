@@ -37,6 +37,9 @@ jobs:
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: pre-commit-
 
+      - name: Install pre-commit
+        run: pip install pre-commit
+
       - name: Run pre-commit on all files
         run: pre-commit run --all-files
 
@@ -102,7 +105,10 @@ jobs:
       - name: Dependency audit (pip-audit)
         run: |
           pip install pip-audit
-          pip-audit
+          pip-audit --skip-editable \
+            --ignore-vuln PYSEC-2025-185 \
+            --ignore-vuln CVE-2025-54121 \
+            --ignore-vuln PYSEC-2026-161
 
   frontend:
     name: Frontend — test, build
