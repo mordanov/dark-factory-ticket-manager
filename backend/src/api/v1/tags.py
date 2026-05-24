@@ -20,4 +20,4 @@ async def search_tags(
     result = await db.execute(
         select(Tag).where(Tag.name.ilike(f"{q}%")).order_by(Tag.name).limit(10)
     )
-    return result.scalars().all()
+    return list(result.scalars().all())

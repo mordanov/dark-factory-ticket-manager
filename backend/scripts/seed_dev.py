@@ -33,6 +33,7 @@ import asyncpg  # type: ignore[import]
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
+
 # asyncpg uses postgresql:// not postgresql+asyncpg://
 def _asyncpg_url(url: str) -> str:
     return url.replace("postgresql+asyncpg://", "postgresql://")
@@ -95,9 +96,24 @@ async def seed() -> None:
 
             # --- Tickets ---
             tickets = [
-                (TICKET_OPEN_ID, "Set up repository", "Initialize the project repository and CI pipeline.", "OPEN"),
-                (TICKET_IP_ID, "Implement auth endpoints", "Build login, logout, and token refresh endpoints.", "IN_PROGRESS"),
-                (TICKET_IR_ID, "Add ticket list view", "Create the project ticket list page in the frontend.", "IN_REVIEW"),
+                (
+                    TICKET_OPEN_ID,
+                    "Set up repository",
+                    "Initialize the project repository and CI pipeline.",
+                    "OPEN",
+                ),
+                (
+                    TICKET_IP_ID,
+                    "Implement auth endpoints",
+                    "Build login, logout, and token refresh endpoints.",
+                    "IN_PROGRESS",
+                ),
+                (
+                    TICKET_IR_ID,
+                    "Add ticket list view",
+                    "Create the project ticket list page in the frontend.",
+                    "IN_REVIEW",
+                ),
             ]
             for tid, title, description, status in tickets:
                 await conn.execute(

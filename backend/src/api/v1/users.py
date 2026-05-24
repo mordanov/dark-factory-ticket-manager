@@ -16,4 +16,4 @@ async def list_users(
     _: User = Depends(get_current_user),
 ) -> list[User]:
     result = await db.execute(select(User).order_by(User.email))
-    return result.scalars().all()
+    return list(result.scalars().all())

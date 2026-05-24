@@ -24,9 +24,7 @@ async def transition_ticket(
     # Acquire row lock on ticket first to prevent concurrent transitions racing
     # past the progress gate (security requirement F-TR-04).
     ticket_result = await session.execute(
-        select(Ticket)
-        .where(Ticket.id == ticket_id, Ticket.deleted_at.is_(None))
-        .with_for_update()
+        select(Ticket).where(Ticket.id == ticket_id, Ticket.deleted_at.is_(None)).with_for_update()
     )
     ticket = ticket_result.scalar_one_or_none()
     if ticket is None:
@@ -36,9 +34,7 @@ async def transition_ticket(
     # gate operate on a consistent snapshot — prevents concurrent unassign+transition
     # from bypassing the gate (F-TR-04).
     all_assignments_result = await session.execute(
-        select(TicketAssignment)
-        .where(TicketAssignment.ticket_id == ticket_id)
-        .with_for_update()
+        select(TicketAssignment).where(TicketAssignment.ticket_id == ticket_id).with_for_update()
     )
     all_assignments = all_assignments_result.scalars().all()
 

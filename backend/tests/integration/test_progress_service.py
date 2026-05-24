@@ -75,7 +75,9 @@ async def test_submit_update_emits_prev_content_on_update(db_session: AsyncSessi
 @pytest.mark.asyncio
 async def test_unassign_leaves_progress_record(db_session: AsyncSession):
     owner = User(email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user)
-    assignee = User(email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user)
+    assignee = User(
+        email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user
+    )
     db_session.add_all([owner, assignee])
     await db_session.flush()
 

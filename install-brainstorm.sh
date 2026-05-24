@@ -105,4 +105,3 @@ echo "Next steps:"
 echo "  1. source your shell config  (e.g. source ~/.zshrc)"
 echo "  2. Open Claude Code in any project directory"
 echo "  3. Run the brainstorm team launcher:  bash run-agents.sh"
-

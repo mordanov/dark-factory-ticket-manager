@@ -18,9 +18,9 @@ database_url = os.environ.get("DATABASE_URL")
 if database_url:
     config.set_main_option("sqlalchemy.url", database_url)
 
-import importlib
+import importlib  # noqa: E402
 
-from src.models.base import Base
+from src.models.base import Base  # noqa: E402
 
 # Import each model module individually so partially-implemented models still
 # register their tables with Base.metadata for autogenerate support.

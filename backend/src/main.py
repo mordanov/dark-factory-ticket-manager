@@ -42,4 +42,7 @@ async def ready() -> dict:
         return {"status": "ready"}
     except Exception:
         from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unreachable")
+
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unreachable"
+        )

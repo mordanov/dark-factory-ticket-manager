@@ -14,7 +14,9 @@ from src.models.user import User, UserRole
 
 async def _setup(session: AsyncSession) -> tuple[User, User, Ticket]:
     owner = User(email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user)
-    assignee2 = User(email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user)
+    assignee2 = User(
+        email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user
+    )
     session.add_all([owner, assignee2])
     await session.flush()
 
@@ -38,7 +40,9 @@ def _h(u: User) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_transition_blocked_422_missing_progress(client: AsyncClient, db_session: AsyncSession):
+async def test_transition_blocked_422_missing_progress(
+    client: AsyncClient, db_session: AsyncSession
+):
     owner, assignee2, ticket = await _setup(db_session)
     progress = ProgressUpdate(ticket_id=ticket.id, user_id=owner.id, content="My update")
     db_session.add(progress)
@@ -85,9 +89,13 @@ async def test_transition_invalid_409(client: AsyncClient, db_session: AsyncSess
 
 
 @pytest.mark.asyncio
-async def test_transition_422_non_assignee_missing_progress(client: AsyncClient, db_session: AsyncSession):
+async def test_transition_422_non_assignee_missing_progress(
+    client: AsyncClient, db_session: AsyncSession
+):
     owner, _, ticket = await _setup(db_session)
-    outsider = User(email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user)
+    outsider = User(
+        email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user
+    )
     db_session.add(outsider)
     await db_session.commit()
 

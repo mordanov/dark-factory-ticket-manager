@@ -101,8 +101,7 @@ async def _load_ticket_response(session: AsyncSession, ticket: Ticket) -> Ticket
 
 async def _next_ticket_number(session: AsyncSession, project_id: UUID) -> int:
     result = await session.execute(
-        select(func.coalesce(func.max(Ticket.number), 0) + 1)
-        .where(Ticket.project_id == project_id)
+        select(func.coalesce(func.max(Ticket.number), 0) + 1).where(Ticket.project_id == project_id)
     )
     return result.scalar() or 1
 
@@ -146,7 +145,11 @@ async def create_ticket(
         "ticket.created",
         actor,
         prev_state=None,
-        new_state={"title": ticket.title, "status": ticket.status.value, "project_id": str(ticket.project_id)},
+        new_state={
+            "title": ticket.title,
+            "status": ticket.status.value,
+            "project_id": str(ticket.project_id),
+        },
     )
     await session.commit()
     return await _load_ticket_response(session, ticket)
@@ -190,7 +193,11 @@ async def create_follow_up(
         "ticket.created",
         actor,
         prev_state=None,
-        new_state={"title": ticket.title, "status": ticket.status.value, "project_id": str(ticket.project_id)},
+        new_state={
+            "title": ticket.title,
+            "status": ticket.status.value,
+            "project_id": str(ticket.project_id),
+        },
     )
     await session.commit()
     return await _load_ticket_response(session, ticket)
@@ -314,7 +321,11 @@ async def list_tickets(
     count_result = await session.execute(select(func.count()).select_from(base_stmt.subquery()))
     total = count_result.scalar() or 0
 
-    paginated = base_stmt.order_by(Ticket.number.asc().nulls_last()).offset((page - 1) * page_size).limit(page_size)
+    paginated = (
+        base_stmt.order_by(Ticket.number.asc().nulls_last())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     tickets_result = await session.execute(paginated)
     tickets = tickets_result.scalars().all()
 
@@ -336,7 +347,9 @@ async def add_tag(
 
     await session.refresh(ticket, ["tags"])
     if len(ticket.tags) >= 10:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Maximum 10 tags per ticket")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Maximum 10 tags per ticket"
+        )
 
     existing = await session.execute(select(Tag).where(Tag.name == tag_name.strip()))
     tag = existing.scalar_one_or_none()

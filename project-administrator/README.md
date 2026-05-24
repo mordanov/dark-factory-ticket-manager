@@ -25,4 +25,3 @@ python project-administrator/agent_metrics.py report-html
 - Required fields: timestamp, agent name, feature name, short task description, time spent, tokens spent, and model used.
 - Project Administrator checks for missing or inconsistent entries and asks the relevant agent to correct them.
 - The final HTML report groups totals by agent, feature, and model.
-

@@ -1,9 +1,9 @@
 # Security Review: Authentication Flow (T029)
 
-**Reviewer**: Security Architect  
-**Date**: 2026-05-23  
+**Reviewer**: Security Architect
+**Date**: 2026-05-23
 **Scope**: T014 (refresh_tokens migration), T018 (core/security.py), T022 (auth endpoints),
-T024 (frontend token store), T025 (API client)  
+T024 (frontend token store), T025 (API client)
 **Phase**: Phase 2 Gate — blocks all user story implementation
 
 ---
@@ -115,7 +115,7 @@ SPA and the FastAPI backend, and between the backend and PostgreSQL.
 
 ### F-01 — Refresh Token Client Storage Not Specified [BLOCKER]
 
-**Threat**: T-13  
+**Threat**: T-13
 **Detail**: T024 specifies that the JWT access token must be stored in Zustand memory
 (not localStorage/sessionStorage). However, neither T024 nor T025 specifies where the
 refresh token is stored on the client. If the refresh token is persisted in localStorage
@@ -148,7 +148,7 @@ in auth.ts must explicitly document where refresh_token is stored and why.
 
 ### F-02 — No Rate Limiting on Login Endpoint [HIGH]
 
-**Threat**: T-01  
+**Threat**: T-01
 **Detail**: POST /auth/login has no rate limiting in the current design. bcrypt slows
 individual attempts but does not prevent distributed credential stuffing where each
 source IP makes only a few requests.
@@ -167,7 +167,7 @@ target remediation version.
 
 ### F-03 — JWT Algorithm Must Be Pinned on Decode [HIGH]
 
-**Threat**: T-02  
+**Threat**: T-02
 **Detail**: python-jose's `jose.jwt.decode()` accepts an `algorithms` parameter. If this
 is omitted or set to `None`, the library may accept tokens signed with `alg:none` or
 with unexpected algorithms. The implementation must explicitly pass `algorithms=["HS256"]`
@@ -191,7 +191,7 @@ passes `algorithms=["HS256"]` explicitly.
 
 ### F-04 — SECRET_KEY Entropy Must Be Enforced [HIGH]
 
-**Threat**: T-03  
+**Threat**: T-03
 **Detail**: If SECRET_KEY is a short or predictable string (e.g. "secret", "changeme"),
 JWTs can be brute-forced offline. The application must validate key strength at startup.
 
@@ -215,7 +215,7 @@ Additionally, `.env.example` must include a note: `SECRET_KEY=<generate with: py
 
 ### F-05 — Auth Events Not Logged (Observability Gap) [MEDIUM]
 
-**Threat**: T-07  
+**Threat**: T-07
 **Detail**: The spec correctly excludes auth from `ticket_events` (auth is outside the
 ticket domain). However, there is no specification for auth activity logging (login
 success, login failure, token refresh, logout). Without this, it is impossible to detect
@@ -236,7 +236,7 @@ auth outcomes. Log fields must not include raw passwords or tokens (covered by F
 
 ### F-06 — Log Redaction Must Cover All Secret Fields [MEDIUM]
 
-**Threat**: T-08  
+**Threat**: T-08
 **Detail**: T017 specifies a PII redaction processor. The required field list must be
 complete. Fields that MUST be redacted from all log output:
 - `password`
@@ -259,7 +259,7 @@ The redaction must replace with `"[REDACTED]"` not empty string.
 
 ### F-07 — Login Must Not Reveal User Existence [MEDIUM]
 
-**Threat**: T-09  
+**Threat**: T-09
 **Detail**: If the API returns different error messages for "email not found" vs. "wrong
 password", attackers can enumerate valid email addresses. Both cases must return HTTP 401
 with identical response body.
@@ -284,7 +284,7 @@ returns 401 with the same `detail` string as wrong password for known email.
 
 ### F-08 — Stack Traces Must Not Appear in API Responses [MEDIUM]
 
-**Threat**: T-10  
+**Threat**: T-10
 **Detail**: FastAPI's default unhandled exception handler can return Python stack traces
 in development mode. These must be suppressed in all environments.
 
@@ -300,7 +300,7 @@ with `{"detail": "Internal server error"}` and no stack trace in the response bo
 
 ### F-09 — Refresh Token Cleanup Required [LOW]
 
-**Threat**: T-11  
+**Threat**: T-11
 **Detail**: The `refresh_tokens` table accumulates rows indefinitely — expired and
 revoked tokens are never removed. With 10–200 concurrent users and long-lived refresh
 tokens, this table will grow unboundedly.
@@ -315,12 +315,12 @@ where `expires_at < now() - interval '7 days'`.
 
 ### F-10 — All Non-Public Routes Must Apply get_current_user [MEDIUM]
 
-**Threat**: T-12  
+**Threat**: T-12
 **Detail**: FastAPI routes are unauthenticated by default. If any route handler in
 tickets.py, assignments.py, progress.py, transitions.py, events.py, or projects.py
 omits the `Depends(get_current_user)` parameter, it becomes publicly accessible.
 
-**Required Fix**: 
+**Required Fix**:
 1. Apply the `get_current_user` dependency at the **router level** (not per-route) for
    all protected routers. Example:
    ```python
@@ -335,7 +335,7 @@ is used and no protected route accidentally omits auth.
 
 ### F-11 — bcrypt Cost Factor Must Be ≥ 12 [MEDIUM]
 
-**Threat**: T-01 (credential cracking post-breach)  
+**Threat**: T-01 (credential cracking post-breach)
 **Detail**: The plan specifies bcrypt but not the cost factor. Default in many libraries
 is 12, but some set it to 10 or lower. A cost factor below 12 makes offline brute-force
 significantly faster.
@@ -353,7 +353,7 @@ hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=BCRYPT_ROUNDS))
 
 ### F-12 — Refresh Token Rotation Not Implemented [LOW]
 
-**Threat**: T-05  
+**Threat**: T-05
 **Detail**: POST /auth/refresh issues a new access_token but does not rotate the refresh
 token (issue a new refresh_token and revoke the old one). A stolen refresh token is
 valid until it expires, even after the user actively refreshes.

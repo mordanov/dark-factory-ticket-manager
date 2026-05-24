@@ -409,4 +409,3 @@ if command -v tmux &>/dev/null && tmux has-session -t brainstorm 2>/dev/null; th
   sleep 1
   tmux attach-session -t brainstorm
 fi
-

@@ -103,6 +103,7 @@ async def test_unassign_403_unauthorized_user(client: AsyncClient, db_session: A
     project = await _make_project(db_session, owner)
     ticket = await _make_ticket(db_session, project, owner)
     from src.models.ticket_assignment import TicketAssignment
+
     assignment = TicketAssignment(ticket_id=ticket.id, user_id=assignee.id, assigned_by=owner.id)
     db_session.add(assignment)
     await db_session.commit()
@@ -125,6 +126,7 @@ async def test_unassign_preserves_progress(client: AsyncClient, db_session: Asyn
     await db_session.commit()
 
     from src.models.ticket_assignment import TicketAssignment
+
     assignment = TicketAssignment(ticket_id=ticket.id, user_id=assignee.id, assigned_by=owner.id)
     db_session.add(assignment)
     await db_session.commit()
@@ -135,6 +137,7 @@ async def test_unassign_preserves_progress(client: AsyncClient, db_session: Asyn
     )
 
     from sqlalchemy import select
+
     result = await db_session.execute(
         select(ProgressUpdate).where(
             ProgressUpdate.ticket_id == ticket.id,

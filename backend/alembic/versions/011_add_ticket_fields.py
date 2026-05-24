@@ -4,6 +4,7 @@ Revision ID: 011
 Revises: 010
 Create Date: 2026-05-23
 """
+
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import ENUM
 
@@ -31,9 +32,17 @@ def upgrade() -> None:
         sa.Column(
             "ticket_type",
             ENUM(
-                "bug", "feature", "improvement", "investigation",
-                "discovery", "reporting", "testing", "analysis", "other",
-                name="ticket_type", create_type=False,
+                "bug",
+                "feature",
+                "improvement",
+                "investigation",
+                "discovery",
+                "reporting",
+                "testing",
+                "analysis",
+                "other",
+                name="ticket_type",
+                create_type=False,
             ),
             nullable=False,
             server_default="feature",
@@ -44,16 +53,28 @@ def upgrade() -> None:
         sa.Column(
             "ticket_spec",
             ENUM(
-                "backend", "frontend", "architecture", "testing",
-                "business_analysis", "product_management", "other",
-                name="ticket_spec", create_type=False,
+                "backend",
+                "frontend",
+                "architecture",
+                "testing",
+                "business_analysis",
+                "product_management",
+                "other",
+                name="ticket_spec",
+                create_type=False,
             ),
             nullable=True,
         ),
     )
-    op.add_column("tickets", sa.Column("urgent", sa.Boolean(), nullable=False, server_default="false"))
-    op.add_column("tickets", sa.Column("blocker", sa.Boolean(), nullable=False, server_default="false"))
-    op.add_column("tickets", sa.Column("bugfix", sa.Boolean(), nullable=False, server_default="false"))
+    op.add_column(
+        "tickets", sa.Column("urgent", sa.Boolean(), nullable=False, server_default="false")
+    )
+    op.add_column(
+        "tickets", sa.Column("blocker", sa.Boolean(), nullable=False, server_default="false")
+    )
+    op.add_column(
+        "tickets", sa.Column("bugfix", sa.Boolean(), nullable=False, server_default="false")
+    )
     op.create_index("idx_tickets_project_number", "tickets", ["project_id", "number"])
 
 

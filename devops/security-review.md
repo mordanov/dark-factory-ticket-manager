@@ -1,8 +1,8 @@
 # Final Security Review: Ticket Management System
 
-**Reviewer**: Security Architect  
-**Date**: 2026-05-23  
-**Scope**: Complete system — all phases and user stories  
+**Reviewer**: Security Architect
+**Date**: 2026-05-23
+**Scope**: Complete system — all phases and user stories
 **Input**: spec.md, plan.md, data-model.md, contracts/openapi.yaml, tasks.md,
 security-review-auth.md (T029), security-review-transitions.md (T061)
 
@@ -21,7 +21,7 @@ below. No fundamental architectural security flaws identified. Key risks are in
 implementation details (JWT handling, row-level locking, IDOR) and operational
 hardening (rate limiting, secret management).
 
-**Phase 2 gate (T029)**: APPROVED WITH RISKS — see security-review-auth.md  
+**Phase 2 gate (T029)**: APPROVED WITH RISKS — see security-review-auth.md
 **Phase 5 gate (T061)**: APPROVED WITH CONDITIONS — see security-review-transitions.md
 
 ---
@@ -111,7 +111,7 @@ explicitly documents this scope limitation.
 3. Soft-deleted tickets (deleted_at IS NOT NULL) must return 404 on GET /tickets/{id}
    — not 403. Never confirm existence of deleted resources.
 
-**Severity for current scope**: Low (accepted residual — documented limitation)  
+**Severity for current scope**: Low (accepted residual — documented limitation)
 **Severity if multi-tenant**: Blocker
 
 ---
@@ -265,7 +265,7 @@ to work for up to 30 minutes.
 non-TLS connection, or from a memory dump) can use it for up to 30 minutes after the
 legitimate user logs out.
 
-**Mitigations in place**: 
+**Mitigations in place**:
 - Short 30-minute TTL limits the exposure window
 - TLS in transit prevents trivial interception
 - Memory-only storage prevents persistent token theft via XSS
@@ -306,7 +306,7 @@ endpoint for this.
 tokens for a specific user_id:
 
 ```sql
-UPDATE refresh_tokens SET revoked_at = now() 
+UPDATE refresh_tokens SET revoked_at = now()
 WHERE user_id = :user_id AND revoked_at IS NULL;
 ```
 

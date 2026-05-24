@@ -1,8 +1,8 @@
 # Security Review: Workflow Transitions (T061)
 
-**Reviewer**: Security Architect  
-**Date**: 2026-05-23  
-**Scope**: T054 (WorkflowService.transition), T056 (POST /tickets/{id}/transitions endpoint)  
+**Reviewer**: Security Architect
+**Date**: 2026-05-23
+**Scope**: T054 (WorkflowService.transition), T056 (POST /tickets/{id}/transitions endpoint)
 **Phase**: Phase 5 Gate (US3)
 
 ---
@@ -54,8 +54,8 @@ Time 2: User B submits progress update
 Time 3: User A and User B BOTH POST /transitions concurrently
 ```
 
-**Risk**: Both transitions execute, ticket transitions twice (e.g., OPEN → IN_PROGRESS × 2).  
-**Mitigation**: The entire transition in T054 is specified as a "single DB transaction". 
+**Risk**: Both transitions execute, ticket transitions twice (e.g., OPEN → IN_PROGRESS × 2).
+**Mitigation**: The entire transition in T054 is specified as a "single DB transaction".
 PostgreSQL's `SELECT ... FOR UPDATE` on the tickets row will serialize concurrent
 transitions. The second transaction will read the updated status and `validate_transition()`
 will correctly raise 409 (OPEN → OPEN is not a valid transition).
@@ -80,7 +80,7 @@ Time 3: User A immediately POST /transitions (now only A, who has submitted)
 assignees, and B has been removed. The accountability requirement (B must document
 their work) is bypassed.
 
-**Attack Path Requires**: 
+**Attack Path Requires**:
 1. Actor must have permission to both remove an assignee AND transition the ticket
 2. The removal + transition must happen in sequence (not truly concurrent)
 
@@ -115,7 +115,7 @@ Time 2: User B deletes their progress update (if deletion were permitted — see
 Time 3: User A's transaction commits the transition
 ```
 
-**Risk**: B's progress update present at check time but absent at commit time.  
+**Risk**: B's progress update present at check time but absent at commit time.
 **Assessment**: The data model does NOT permit deletion of progress_updates. They are
 upsertable but not deletable. This race condition cannot occur as designed.
 
@@ -135,7 +135,7 @@ Time 2: Admin adds User B as assignee (while transition in flight)
 Time 3: Transition commits with only A having progress
 ```
 
-**Risk**: Ticket transitions with a newly added assignee B having no progress update.  
+**Risk**: Ticket transitions with a newly added assignee B having no progress update.
 **Assessment**: Low risk given the sequential nature of the gate check. If the transition
 transaction reads `ticket_assignments` with `SELECT ... FOR UPDATE` (row-level lock), the
 concurrent assignment insert will be serialized. If it does NOT lock, this race is possible.
@@ -208,30 +208,30 @@ async def transition(session, ticket_id, to_status, actor):
         .where(Ticket.id == ticket_id, Ticket.deleted_at.is_(None))
         .with_for_update()  # REQUIRED — row-level lock
     ).scalar_one_or_none()
-    
+
     if not ticket:
         raise HTTPException(404)
-    
+
     # 2. Validate the transition path
     validate_transition(ticket.status, to_status)  # raises 409 if invalid
-    
+
     # 3. Load current assignments (within the locked transaction)
     assignments = await session.execute(
         select(TicketAssignment)
         .where(TicketAssignment.ticket_id == ticket_id)
         .with_for_update()  # REQUIRED — prevents concurrent add during gate check
     ).scalars().all()
-    
+
     # 4. Load progress updates
     progress_records = await session.execute(
         select(ProgressUpdate)
         .where(ProgressUpdate.ticket_id == ticket_id)
     ).scalars().all()
-    
+
     # 5. Gate check
     progress_user_ids = {p.user_id for p in progress_records}
     missing = [a for a in assignments if a.user_id not in progress_user_ids]
-    
+
     if missing:
         # Emit blocked event (immutable record of the attempt)
         await event_service.emit_event(
@@ -241,7 +241,7 @@ async def transition(session, ticket_id, to_status, actor):
             metadata={"requested_status": to_status, "missing_updates": [...]}
         )
         raise HTTPException(422, TransitionBlockedError(...))
-    
+
     # 6. Execute transition
     ticket.status = to_status
     await event_service.emit_event(
@@ -249,7 +249,7 @@ async def transition(session, ticket_id, to_status, actor):
         prev_state={"status": prev_status},
         new_state={"status": to_status}
     )
-    
+
     await session.commit()
 ```
 

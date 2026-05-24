@@ -37,9 +37,13 @@ async def test_create_emits_ticket_created_event(db_session: AsyncSession):
     project = await _project(db_session, user)
     await db_session.commit()
 
-    await create_ticket(db_session, project.id, TicketCreate(title="Test", ticket_spec="backend"), user)
+    await create_ticket(
+        db_session, project.id, TicketCreate(title="Test", ticket_spec="backend"), user
+    )
 
-    result = await db_session.execute(select(TicketEvent).where(TicketEvent.event_type == "ticket.created"))
+    result = await db_session.execute(
+        select(TicketEvent).where(TicketEvent.event_type == "ticket.created")
+    )
     events = result.scalars().all()
     assert len(events) >= 1
 
@@ -50,7 +54,9 @@ async def test_delete_blocked_by_follow_up(db_session: AsyncSession):
 
     user = await _user(db_session)
     project = await _project(db_session, user)
-    parent = Ticket(project_id=project.id, title="Parent", created_by=user.id, status=TicketStatus.OPEN)
+    parent = Ticket(
+        project_id=project.id, title="Parent", created_by=user.id, status=TicketStatus.OPEN
+    )
     db_session.add(parent)
     await db_session.flush()
     child = Ticket(
@@ -72,7 +78,9 @@ async def test_delete_blocked_by_follow_up(db_session: AsyncSession):
 async def test_delete_emits_ticket_deleted_event(db_session: AsyncSession):
     user = await _user(db_session)
     project = await _project(db_session, user)
-    ticket = Ticket(project_id=project.id, title="Gone", created_by=user.id, status=TicketStatus.OPEN)
+    ticket = Ticket(
+        project_id=project.id, title="Gone", created_by=user.id, status=TicketStatus.OPEN
+    )
     db_session.add(ticket)
     await db_session.commit()
 

@@ -14,9 +14,7 @@ _PII_FIELDS = frozenset(
 )
 
 
-def _redact_pii(
-    logger: Any, method: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+def _redact_pii(logger: Any, method: str, event_dict: dict[str, Any]) -> dict[str, Any]:
     for key in _PII_FIELDS:
         if key in event_dict:
             event_dict[key] = "***REDACTED***"

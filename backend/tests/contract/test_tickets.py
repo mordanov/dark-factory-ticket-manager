@@ -68,7 +68,9 @@ async def test_get_ticket_200(client: AsyncClient, db_session: AsyncSession):
 async def test_update_ticket_200(client: AsyncClient, db_session: AsyncSession):
     user = await _create_user(db_session, f"u-{uuid4()}@test.com")
     project = await _create_project(db_session, user)
-    ticket = Ticket(project_id=project.id, title="Old", created_by=user.id, status=TicketStatus.OPEN)
+    ticket = Ticket(
+        project_id=project.id, title="Old", created_by=user.id, status=TicketStatus.OPEN
+    )
     db_session.add(ticket)
     await db_session.commit()
 
@@ -85,7 +87,9 @@ async def test_update_ticket_200(client: AsyncClient, db_session: AsyncSession):
 async def test_delete_ticket_204(client: AsyncClient, db_session: AsyncSession):
     user = await _create_user(db_session, f"u-{uuid4()}@test.com")
     project = await _create_project(db_session, user)
-    ticket = Ticket(project_id=project.id, title="Delete me", created_by=user.id, status=TicketStatus.OPEN)
+    ticket = Ticket(
+        project_id=project.id, title="Delete me", created_by=user.id, status=TicketStatus.OPEN
+    )
     db_session.add(ticket)
     await db_session.commit()
 
@@ -97,7 +101,9 @@ async def test_delete_ticket_204(client: AsyncClient, db_session: AsyncSession):
 async def test_delete_ticket_409_with_follow_ups(client: AsyncClient, db_session: AsyncSession):
     user = await _create_user(db_session, f"u-{uuid4()}@test.com")
     project = await _create_project(db_session, user)
-    parent = Ticket(project_id=project.id, title="Parent", created_by=user.id, status=TicketStatus.OPEN)
+    parent = Ticket(
+        project_id=project.id, title="Parent", created_by=user.id, status=TicketStatus.OPEN
+    )
     db_session.add(parent)
     await db_session.flush()
     child = Ticket(
@@ -139,7 +145,9 @@ async def test_update_ticket_403_non_creator(client: AsyncClient, db_session: As
     creator = await _create_user(db_session, f"creator-{uuid4()}@test.com")
     other = await _create_user(db_session, f"other-{uuid4()}@test.com")
     project = await _create_project(db_session, creator)
-    ticket = Ticket(project_id=project.id, title="Mine", created_by=creator.id, status=TicketStatus.OPEN)
+    ticket = Ticket(
+        project_id=project.id, title="Mine", created_by=creator.id, status=TicketStatus.OPEN
+    )
     db_session.add(ticket)
     await db_session.commit()
 

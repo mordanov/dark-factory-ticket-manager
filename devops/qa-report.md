@@ -1,8 +1,8 @@
 # Quality Report: Ticket Management System
 
-**Prepared by**: Autotester agent (T080)  
-**Date**: 2026-05-23  
-**Branch**: `001-ticket-management-system`  
+**Prepared by**: Autotester agent (T080)
+**Date**: 2026-05-23
+**Branch**: `001-ticket-management-system`
 **Input**: spec.md (US1–US5, FR-001–FR-012), all test files, security-review.md,
 security-review-auth.md, security-review-transitions.md, T082 code review
 

@@ -1,7 +1,7 @@
 # Test Strategy: Ticket Management System
 
-**Branch**: `001-ticket-management-system` | **Date**: 2026-05-23  
-**Agent**: autotester  
+**Branch**: `001-ticket-management-system` | **Date**: 2026-05-23
+**Agent**: autotester
 **Input**: spec.md, plan.md, data-model.md, contracts/openapi.yaml, tasks.md
 
 ---
@@ -41,7 +41,7 @@ instance (matching plan.md architecture).
 ## Task Coverage Map
 
 ### T041 — Contract Tests: Ticket CRUD (US1)
-**File**: `backend/tests/contract/test_tickets.py`  
+**File**: `backend/tests/contract/test_tickets.py`
 **Depends on**: T031–T037 (backend US1 implementation)
 
 Scenarios:
@@ -55,7 +55,7 @@ Scenarios:
 - Unauthenticated request → 401
 
 ### T042 — Integration Tests: TicketService (US1)
-**File**: `backend/tests/integration/test_ticket_service.py`  
+**File**: `backend/tests/integration/test_ticket_service.py`
 **Depends on**: T032–T035, T020 (event_service)
 
 Scenarios:
@@ -67,7 +67,7 @@ Scenarios:
 - `update_ticket()` 403 when caller is not creator and not admin
 
 ### T052 — Contract Tests: Assignments (US2)
-**File**: `backend/tests/contract/test_assignments.py`  
+**File**: `backend/tests/contract/test_assignments.py`
 **Depends on**: T043–T049
 
 Scenarios:
@@ -80,7 +80,7 @@ Scenarios:
 - Non-assignee submitting progress → 403
 
 ### T053 — Integration Tests: ProgressService (US2)
-**File**: `backend/tests/integration/test_progress_service.py`  
+**File**: `backend/tests/integration/test_progress_service.py`
 **Depends on**: T047, T046, T020
 
 Scenarios:
@@ -90,7 +90,7 @@ Scenarios:
 - Non-assignee calling `submit_update()` raises 403
 
 ### T059 — Contract Tests: Status Transitions (US3)
-**File**: `backend/tests/contract/test_transitions.py`  
+**File**: `backend/tests/contract/test_transitions.py`
 **Depends on**: T054–T056
 
 Scenarios:
@@ -102,7 +102,7 @@ Scenarios:
 - CLOSED ticket transition attempt → 409 (terminal state)
 
 ### T060 — Integration Tests: WorkflowService (US3)
-**File**: `backend/tests/integration/test_workflow_service.py`  
+**File**: `backend/tests/integration/test_workflow_service.py`
 **Depends on**: T054, T020
 
 Scenarios:
@@ -113,7 +113,7 @@ Scenarios:
 - Concurrent assignee removal does not bypass progress gate (race condition check)
 
 ### T067 — Contract Tests: Event History (US4)
-**File**: `backend/tests/contract/test_events.py`  
+**File**: `backend/tests/contract/test_events.py`
 **Depends on**: T062–T064
 
 Scenarios:
@@ -127,7 +127,7 @@ Scenarios:
 - Unauthenticated → 401
 
 ### T073 — Frontend Component Tests: FilterBar + ProjectTicketList (US5)
-**File**: `frontend/tests/components/`  
+**File**: `frontend/tests/components/`
 **Depends on**: T070–T072
 
 Scenarios:
@@ -139,7 +139,7 @@ Scenarios:
 - `ProjectTicketList` — each TicketCard links to correct ticket detail URL
 
 ### T074 — Frontend Component Tests: TicketForm, TicketCard, StatusTransitionButton
-**File**: `frontend/tests/components/`  
+**File**: `frontend/tests/components/`
 **Depends on**: T038, T040, T057
 
 Scenarios:
@@ -151,7 +151,7 @@ Scenarios:
 - `StatusTransitionButton` — invalid transition (409) shows "Invalid transition" message
 
 ### T075 — Frontend Page Tests: LoginPage + TicketDetailPage
-**File**: `frontend/tests/pages/`  
+**File**: `frontend/tests/pages/`
 **Depends on**: T026, T066
 
 Scenarios:
@@ -164,7 +164,7 @@ Scenarios:
   StatusTransitionButton, TicketEventHistory
 
 ### T080 — QA Acceptance Criteria Verification Report
-**File**: `devops/qa-report.md`  
+**File**: `devops/qa-report.md`
 **Depends on**: All implementation + T041–T075
 
 Format: Quality Report template from autotester.md. Maps each acceptance scenario

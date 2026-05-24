@@ -29,7 +29,9 @@ def _slugify(name: str) -> str:
 
 async def _ticket_counts(db: AsyncSession, project_id: UUID) -> ProjectTicketCounts:
     rows = await db.execute(
-        select(Ticket.status, func.count()).where(Ticket.project_id == project_id).group_by(Ticket.status)
+        select(Ticket.status, func.count())
+        .where(Ticket.project_id == project_id)
+        .group_by(Ticket.status)
     )
     counts: dict[TicketStatus, int] = {row[0]: row[1] for row in rows}
     return ProjectTicketCounts(

@@ -56,7 +56,9 @@ async def test_transition_emits_status_changed_event(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_blocked_transition_emits_transition_blocked_event(db_session: AsyncSession):
     user = User(email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user)
-    assignee2 = User(email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user)
+    assignee2 = User(
+        email=f"{uuid4()}@t.com", hashed_password=hash_password("pw"), role=UserRole.user
+    )
     db_session.add_all([user, assignee2])
     await db_session.flush()
 

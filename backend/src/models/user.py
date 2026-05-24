@@ -29,7 +29,11 @@ class User(Base):
         nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
-    tickets_created = relationship("Ticket", back_populates="creator", foreign_keys="Ticket.created_by")
-    assignments = relationship("TicketAssignment", back_populates="user", foreign_keys="TicketAssignment.user_id")
+    tickets_created = relationship(
+        "Ticket", back_populates="creator", foreign_keys="Ticket.created_by"
+    )
+    assignments = relationship(
+        "TicketAssignment", back_populates="user", foreign_keys="TicketAssignment.user_id"
+    )
     progress_updates = relationship("ProgressUpdate", back_populates="user")
     refresh_tokens = relationship("RefreshToken", back_populates="user")

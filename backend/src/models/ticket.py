@@ -66,12 +66,22 @@ class Ticket(Base):
     )
     number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ticket_type: Mapped[TicketType] = mapped_column(
-        Enum(TicketType, name="ticket_type", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        Enum(
+            TicketType,
+            name="ticket_type",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         default=TicketType.FEATURE,
     )
     ticket_spec: Mapped[TicketSpec | None] = mapped_column(
-        Enum(TicketSpec, name="ticket_spec", create_type=False, values_callable=lambda x: [e.value for e in x]),
+        Enum(
+            TicketSpec,
+            name="ticket_spec",
+            create_type=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=True,
     )
     urgent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -88,7 +98,11 @@ class Ticket(Base):
     creator = relationship("User", back_populates="tickets_created", foreign_keys=[created_by])
     parent = relationship("Ticket", remote_side="Ticket.id", foreign_keys=[parent_ticket_id])
     follow_ups = relationship("Ticket", foreign_keys=[parent_ticket_id], back_populates="parent")
-    assignments = relationship("TicketAssignment", back_populates="ticket", cascade="all, delete-orphan")
+    assignments = relationship(
+        "TicketAssignment", back_populates="ticket", cascade="all, delete-orphan"
+    )
     progress_updates = relationship("ProgressUpdate", back_populates="ticket")
-    events = relationship("TicketEvent", back_populates="ticket", order_by="TicketEvent.occurred_at")
+    events = relationship(
+        "TicketEvent", back_populates="ticket", order_by="TicketEvent.occurred_at"
+    )
     tags = relationship("Tag", secondary=ticket_tags_table, back_populates="tickets")
