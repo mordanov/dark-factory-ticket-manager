@@ -89,6 +89,8 @@ class TicketResponse(BaseModel):
     urgent: bool = False
     blocker: bool = False
     bugfix: bool = False
+    time_spent: int = 0
+    tokens_consumed: int = 0
     created_by: UserSummary
     created_at: datetime
     updated_at: datetime

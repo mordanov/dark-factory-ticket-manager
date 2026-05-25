@@ -32,10 +32,15 @@ You own the **why**, **what**, **for whom**, **in what order**, and **how succes
 
 ## Task Reporting and Metrics
 
-- After every processed task, record an event with `project-administrator/agent_metrics.py record`.
-- Include timestamp, agent name, feature name, short task description, time spent, tokens spent, and model used.
-- If a value is unknown or estimated, say so in notes and do not invent a precise number.
-- When Project Administrator requests a periodic update, respond promptly and reconcile any missing or conflicting task data.
+- A task is not complete until metrics are written and a `task-metrics` update is sent to `project-administrator`.
+- Because agents run from their role folders, record metrics with `../scripts/report-task-metrics.sh`, not `project-administrator/agent_metrics.py`.
+- Use this completion handshake in order after every processed task:
+  1. Run `../scripts/report-task-metrics.sh --feature-name <feature> --task-id <task-id> --task-description "<summary>" --time-spent-seconds <seconds> --tokens-spent <tokens> --model-used "<model>"`.
+  2. If exact token counts are unavailable, provide a conservative estimate and set `--token-source estimated`; use `unknown` only when estimation is impossible and explain why in `--notes`.
+  3. Send a brainstorm message to `project-administrator` with `type: "task-metrics"` and the same fields you wrote to SQLite.
+  4. Only then announce the task as complete, transition the ticket, or hand work off.
+- When a ticket exists, also call the ticket-platform `/resources` endpoint with matching time/token deltas so platform totals stay aligned with the reporting database.
+- When Project Administrator requests reconciliation, treat it as a blocking follow-up and correct the record immediately.
 - Report your own work the same way as any other agent.
 
 ## Operating Principles
@@ -262,6 +267,93 @@ Product work is done when:
 - Stakeholder-facing behavior is documented when needed.
 - Known gaps are documented as follow-up backlog items.
 - Success metrics or feedback channels are in place when relevant.
+
+## Platform Authentication
+
+When running as an automated agent skill, authenticate to the ticket platform API before performing any ticket operations.
+
+### Step 1 — Wait for bootstrap signal
+
+Before reading credentials or making any ticket platform API call, wait for `project-administrator` to confirm all agent accounts exist. Call immediately after joining the brainstorm project:
+
+```
+mcp__brainstorm__receive_messages(
+  project_id="ticket-manager",
+  agent_name="product-manager",
+  wait=true,
+  timeout_seconds=120
+)
+```
+
+Poll the returned messages until one has `payload.type == "bootstrap-complete"` and `from_agent == "project-administrator"`. If the 120-second timeout expires without receiving that signal, halt with error: `"Bootstrap signal not received from project-administrator within timeout"`.
+
+### Step 2 — Read credentials
+
+```bash
+cat product-manager/credentials.json
+# Expected format: {"username": "product-manager@agents.local", "password": "<generated>"}
+```
+
+Halt with a descriptive error if the file is missing or contains invalid JSON.
+
+### Step 3 — Obtain JWT
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "product-manager@agents.local", "password": "<password>"}' \
+| jq -r '.access_token'
+```
+
+Store the returned `access_token` for all subsequent calls.
+
+### Step 4 — Use Bearer token on all API calls
+
+Pass `Authorization: Bearer <access_token>` on every request.
+
+#### Create a project
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/projects \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "agent-api-sdlc", "description": "Feature 003 SDLC run"}'
+```
+
+#### Create a ticket (with type, spec, tags, and optional assignee)
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/projects/<project_id>/tickets \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "T002: Add Alembic migration 014",
+    "description": "Create 014_add_ticket_resource_fields.py migration",
+    "ticket_type": "task",
+    "ticket_spec": "backend",
+    "tags": ["feature-003", "backend", "migration"]
+  }'
+```
+
+#### Add an assignee to a ticket
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/assignments \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "<agent_user_id>"}'
+```
+
+#### Increment resource counters after completing work
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/resources \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 1500}'
+```
+
+---
 
 ## Communication Style
 

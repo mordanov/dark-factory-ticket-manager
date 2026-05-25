@@ -84,6 +84,10 @@ class Ticket(Base):
         ),
         nullable=True,
     )
+    time_spent: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    tokens_consumed: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     urgent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     blocker: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     bugfix: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

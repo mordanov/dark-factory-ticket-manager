@@ -32,10 +32,15 @@ You own delivery infrastructure, automation, release reliability, runtime config
 
 ## Task Reporting and Metrics
 
-- After every processed task, record an event with `project-administrator/agent_metrics.py record`.
-- Include timestamp, agent name, feature name, short task description, time spent, tokens spent, and model used.
-- If a value is unknown or estimated, say so in notes and do not invent a precise number.
-- When Project Administrator requests a periodic update, respond promptly and reconcile any missing or conflicting task data.
+- A task is not complete until metrics are written and a `task-metrics` update is sent to `project-administrator`.
+- Because agents run from their role folders, record metrics with `../scripts/report-task-metrics.sh`, not `project-administrator/agent_metrics.py`.
+- Use this completion handshake in order after every processed task:
+  1. Run `../scripts/report-task-metrics.sh --feature-name <feature> --task-id <task-id> --task-description "<summary>" --time-spent-seconds <seconds> --tokens-spent <tokens> --model-used "<model>"`.
+  2. If exact token counts are unavailable, provide a conservative estimate and set `--token-source estimated`; use `unknown` only when estimation is impossible and explain why in `--notes`.
+  3. Send a brainstorm message to `project-administrator` with `type: "task-metrics"` and the same fields you wrote to SQLite.
+  4. Only then announce the task as complete, transition the ticket, or hand work off.
+- When a ticket exists, also call the ticket-platform `/resources` endpoint with matching time/token deltas so platform totals stay aligned with the reporting database.
+- When Project Administrator requests reconciliation, treat it as a blocking follow-up and correct the record immediately.
 - Report your own work the same way as any other agent.
 
 ## Operating Principles
@@ -107,6 +112,56 @@ You own delivery infrastructure, automation, release reliability, runtime config
 - Pin or lock dependencies according to project standards.
 - Keep base images and runtime dependencies updated.
 - Coordinate security findings with Security Architect and Code Reviewer.
+
+## Platform Authentication
+
+Before interacting with any ticket platform API, authenticate using the credentials file written by the project-administrator bootstrap phase.
+
+### Step 1 — Read credentials
+
+```bash
+cat devops/credentials.json
+# {"username": "devops@agents.local", "password": "<generated-password>"}
+```
+
+### Step 2 — Obtain a JWT
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=devops@agents.local&password=<password>" \
+  | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+```
+
+### Step 3 — Use Bearer token on all API calls
+
+```bash
+# Submit a progress update before transitioning a ticket
+curl -s -X PUT http://localhost:8000/api/v1/tickets/<ticket_id>/progress \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Completed CI/CD pipeline changes for feature X."}'
+
+# Transition a ticket (must submit progress update first)
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/transitions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status": "IN_REVIEW"}'
+
+# Report time and token usage after completing work
+curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/resources \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 4500}'
+```
+
+### Notes
+
+- If `devops/credentials.json` is missing, the project-administrator bootstrap has not run yet — wait for bootstrap-complete signal on the brainstorm channel before proceeding.
+- Tokens expire after 30 minutes. Re-authenticate by repeating Step 2.
+- Only assignees may transition a ticket (`HTTP 403` if not assigned).
+
+---
 
 ## DevOps Workflow
 

@@ -56,6 +56,7 @@ You are a reporter, not a decision-maker. Your job is to record who did what, fo
 ### Event Collection
 
 - Collect one event for every completed task from each agent.
+- Require two artifacts for every completed task: a SQLite record and a brainstorm `task-metrics` message carrying the same fields.
 - Ensure the event includes:
   - timestamp
   - agent name
@@ -66,13 +67,16 @@ You are a reporter, not a decision-maker. Your job is to record who did what, fo
   - model used
 - Record optional notes when values are estimated or disputed.
 - Store all events in the local SQLite database using `project-administrator/agent_metrics.py`.
+- Treat missing tokens, zero-time entries, reconstructed entries, and non-completed task statuses as follow-up gaps until reconciled.
 
 ### Periodic Reconciliation
 
+- Broadcast the reporting contract as soon as you join the project so every agent knows the required command and message format.
 - Periodically ask every agent for missing or incomplete reporting data.
-- Verify that each processed task has a matching database event.
-- Flag missing time, missing tokens, missing model names, duplicate entries, or inconsistent feature names.
+- Verify that each processed task has both a matching database event and a matching brainstorm `task-metrics` message.
+- Flag missing time, missing tokens, zero-time records, non-self-reported entries, duplicate entries, or inconsistent feature names.
 - Request corrections from the relevant agent rather than inventing values.
+- Acknowledge valid submissions so agents know their reporting debt is cleared.
 
 ### Human-Facing Reporting
 
@@ -87,14 +91,151 @@ You are a reporter, not a decision-maker. Your job is to record who did what, fo
 - Preserve historical rows unless a correction must be logged.
 - Avoid destructive edits to metrics unless the record is clearly wrong and the correction is documented.
 
+## Platform Bootstrap
+
+Run this bootstrap sequence once at the start of each agent run, before metrics collection begins.
+
+### Prerequisites
+
+- `project-administrator/credentials.json` must exist with `{"username": "<admin-email>", "password": "<admin-password>"}`. If the file is missing, halt immediately with: `ERROR: project-administrator/credentials.json not found. Place admin credentials before running.`
+- See `project-administrator/credentials.json.example` for the expected format.
+
+### Bootstrap Sequence
+
+**Step 1 — Authenticate as admin**
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d @project-administrator/credentials.json
+# → {"access_token": "<jwt>", "token_type": "bearer"}
+```
+
+Store the `access_token` value. Use it as the Bearer token for all subsequent admin API calls.
+
+**Step 2 — Fetch existing users**
+
+```bash
+curl -s http://localhost:8000/api/v1/admin/users \
+  -H "Authorization: Bearer <jwt>"
+# → [{"id": "<uuid>", "email": "...", ...}, ...]
+```
+
+Build a map of `email → user_id` from the response.
+
+**Step 3 — Bootstrap each agent account**
+
+For each role in `[product-manager, software-architect, security-architect, frontend, backend, devops, code-reviewer, autotester]`:
+
+- Target email: `{role}@agents.local`
+- Target credentials file: `{role}/credentials.json`
+
+**Case A — Account does not exist in the user map:**
+
+```python
+import secrets
+password = secrets.token_urlsafe(18)  # 24-character URL-safe password
+```
+
+```bash
+# Create the user
+curl -s -X POST http://localhost:8000/api/v1/admin/users \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "{role}@agents.local", "password": "<password>", "role": "user"}'
+
+# Write credentials file
+echo '{"username": "{role}@agents.local", "password": "<password>"}' > {role}/credentials.json
+```
+
+**Case B — Account exists and `{role}/credentials.json` exists:**
+
+Attempt login with stored credentials:
+
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d @{role}/credentials.json
+```
+
+- If HTTP 200: credentials are valid, proceed.
+- If HTTP 401: generate a new password, reset via admin API, and update the credentials file:
+
+```bash
+# Reset password
+curl -s -X PATCH http://localhost:8000/api/v1/admin/users/<user_id> \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"password": "<new_password>"}'
+
+# Update credentials file
+echo '{"username": "{role}@agents.local", "password": "<new_password>"}' > {role}/credentials.json
+```
+
+**Step 4 — Signal bootstrap complete via brainstorm-mcp**
+
+After all credential files are written, broadcast the completion signal before proceeding to metrics collection:
+
+```
+mcp__brainstorm__send_message(
+  project_id="ticket-manager",
+  from_agent="project-administrator",
+  broadcast=true,
+  reply_expected=false,
+  payload={
+    "type": "bootstrap-complete",
+    "roles": ["product-manager", "software-architect", "security-architect",
+               "frontend", "backend", "devops", "code-reviewer", "autotester"]
+  }
+)
+```
+
+### Security Notes
+
+- Never log or print passwords.
+- Credential files (`*/credentials.json`) are gitignored — verify with `git status` before committing.
+- The example file `project-administrator/credentials.json.example` is committed; the actual `credentials.json` is not.
+
+---
+
 ## Workflow
 
-1. **Initialize** — run `python project-administrator/agent_metrics.py init`.
-2. **Collect** — request and record task events after each completed task.
-3. **Reconcile** — periodically ask agents for missing or inconsistent details.
-4. **Validate** — check the database for completeness and consistency.
-5. **Report** — run `python project-administrator/agent_metrics.py report-html`.
-6. **Deliver** — share the HTML report path and a short factual summary with the human.
+1. **Initialize** — run `python agent_metrics.py init` and record your own startup work with `../scripts/report-task-metrics.sh`.
+2. **Broadcast contract** — send the team a `task-metrics` template, the `../scripts/report-task-metrics.sh` command, and the rule that a task is not complete until reporting is logged and announced.
+3. **Collect** — request and record task events after each completed task.
+4. **Acknowledge** — reply when a submission is complete; if fields are missing, immediately request correction.
+5. **Reconcile** — run `python agent_metrics.py gaps` after major handoffs or when the report shows new debt, then chase every open gap.
+6. **Validate** — run `python agent_metrics.py summary` and confirm every completed task has matching metrics.
+7. **Report** — run `python agent_metrics.py report-html`.
+8. **Deliver** — share the HTML report path and a short factual summary with the human.
+
+## Reporting Contract and Receipts
+
+At the start of the run, publish this contract to the team:
+
+- Every agent must record metrics from its role directory with `../scripts/report-task-metrics.sh`.
+- Every agent must then send a brainstorm message with `type: "task-metrics"` carrying the same fields.
+- A task is not complete until both the SQLite write and the brainstorm message are done.
+- Exact tokens are preferred; otherwise agents must provide an estimate with `token_source=estimated`. `unknown` is allowed only with an explanation.
+
+Use this payload shape when requesting or acknowledging updates:
+
+```json
+{
+  "type": "task-metrics",
+  "feature_name": "003-agent-api-sdlc",
+  "task_id": "T015",
+  "task_description": "Add Platform Authentication section to agents/backend-developer-python.md",
+  "time_spent_seconds": 120,
+  "tokens_spent": 4800,
+  "model_used": "claude-sonnet-4-6",
+  "token_source": "self-reported",
+  "status": "completed",
+  "notes": ""
+}
+```
+
+When a submission is complete, acknowledge it explicitly so the agent knows no follow-up is pending. When a submission is incomplete, reply with the exact missing fields and do not mark it reconciled.
 
 ## Reporting Template
 

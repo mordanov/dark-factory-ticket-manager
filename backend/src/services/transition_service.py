@@ -38,6 +38,13 @@ async def transition_ticket(
     )
     all_assignments = all_assignments_result.scalars().all()
 
+    assignee_ids = {a.user_id for a in all_assignments}
+    if actor.id not in assignee_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only assignees may transition this ticket",
+        )
+
     validate_transition(ticket.status, to_status)
 
     # Progress gate: uses locked current assignees (Option B per architecture ruling —
@@ -74,7 +81,7 @@ async def transition_ticket(
             missing_updates=missing,
         )
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=error.model_dump(mode="json"),
         )
 
