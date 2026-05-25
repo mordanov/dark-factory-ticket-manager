@@ -121,6 +121,7 @@
       "movingTo": "Moving…",
       "moveTo": "→ {{status}}",
       "transitionBlocked": "Waiting on progress updates from:",
+      "updateRequiredForTransition": "You need to submit a progress update before transitioning this ticket.",
       "deleteConfirm": "Delete this ticket? This cannot be undone.",
       "deleteError": "Failed to delete ticket.",
       "deleteConflict": "Cannot delete: this ticket has active follow-up tickets.",

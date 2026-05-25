@@ -121,6 +121,7 @@
       "movingTo": "Moviendo…",
       "moveTo": "→ {{status}}",
       "transitionBlocked": "Esperando actualizaciones de progreso de:",
+      "updateRequiredForTransition": "Debes enviar una actualización de progreso antes de cambiar el estado.",
       "deleteConfirm": "¿Eliminar este ticket? Esta acción no se puede deshacer.",
       "deleteError": "Error al eliminar el ticket.",
       "deleteConflict": "No se puede eliminar: el ticket tiene tickets de seguimiento activos.",
