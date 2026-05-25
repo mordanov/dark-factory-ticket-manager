@@ -1,9 +1,19 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { TicketResponse, TicketStatus, TransitionBlockedError } from "../../types";
-import { WORKFLOW_TRANSITIONS } from "../../types";
-import { transitionTicket, submitProgress } from "../../api/tickets";
-import { useAuthStore } from "../../store/auth";
+import type { TicketResponse, TicketStatus, TransitionBlockedError } from "@/types";
+import { WORKFLOW_TRANSITIONS } from "@/types";
+import { transitionTicket, submitProgress } from "@/api/tickets";
+import { useAuthStore } from "@/store/auth";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 function isTransitionBlockedError(v: unknown): v is TransitionBlockedError {
   return typeof v === "object" && v !== null && "missing_updates" in v;
@@ -27,7 +37,7 @@ export function StatusTransitionButton({ ticket, onTransitioned }: StatusTransit
   const [updateLoading, setUpdateLoading] = useState(false);
 
   if (nextStatuses.length === 0) {
-    return <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{t("tickets.detail.noTransitions")}</p>;
+    return <p className="text-sm text-muted-foreground">{t("tickets.detail.noTransitions")}</p>;
   }
 
   async function handleTransition(toStatus: TicketStatus) {
@@ -46,35 +56,27 @@ export function StatusTransitionButton({ ticket, onTransitioned }: StatusTransit
           setBlocked(result);
         }
       } else {
+        const announcer = document.getElementById("status-announcer");
+        if (announcer) announcer.textContent = t("tickets.detail.transitionSuccess", { status: t(`tickets.status.${toStatus}`) });
         onTransitioned(result);
       }
     } catch (err: unknown) {
       if (typeof err === "object" && err !== null && "response" in err) {
         const e = err as { response: { status: number; data?: { detail?: string } } };
-        if (e.response.status === 409) {
-          setApiError(t("tickets.detail.invalidTransition"));
-          return;
-        }
-        if (e.response.status === 403) {
-          setApiError(t("tickets.detail.notAssignedError"));
-          return;
-        }
-        if (e.response.data?.detail) {
-          setApiError(e.response.data.detail);
-          return;
-        }
+        if (e.response.status === 409) { setApiError(t("tickets.detail.invalidTransition")); return; }
+        if (e.response.status === 403) { setApiError(t("tickets.detail.notAssignedError")); return; }
+        if (e.response.data?.detail) { setApiError(e.response.data.detail); return; }
       }
       setApiError(t("tickets.detail.transitionError"));
+      const announcer = document.getElementById("status-announcer");
+      if (announcer) announcer.textContent = t("tickets.detail.transitionError");
     } finally {
       setLoading(null);
     }
   }
 
   async function handleSubmitUpdate() {
-    if (!updateText.trim()) {
-      setUpdateError(t("tickets.progress.required"));
-      return;
-    }
+    if (!updateText.trim()) { setUpdateError(t("tickets.progress.required")); return; }
     if (!pendingToStatus) return;
     setUpdateError(null);
     setUpdateLoading(true);
@@ -97,11 +99,8 @@ export function StatusTransitionButton({ ticket, onTransitioned }: StatusTransit
     } catch (err: unknown) {
       if (typeof err === "object" && err !== null && "response" in err) {
         const e = err as { response: { status: number; data?: { detail?: string } } };
-        if (e.response.data?.detail) {
-          setApiError(e.response.data.detail);
-        } else {
-          setApiError(t("tickets.detail.transitionError"));
-        }
+        if (e.response.data?.detail) { setApiError(e.response.data.detail); }
+        else { setApiError(t("tickets.detail.transitionError")); }
       } else {
         setApiError(t("tickets.detail.transitionError"));
       }
@@ -120,33 +119,30 @@ export function StatusTransitionButton({ ticket, onTransitioned }: StatusTransit
 
   return (
     <div>
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+      <div className="flex gap-2 flex-wrap">
         {nextStatuses.map((s) => (
-          <button
+          <Button
             key={s}
             onClick={() => handleTransition(s)}
             disabled={loading !== null}
-            style={transitionBtn}
+            size="default"
+            className="w-full sm:w-auto"
             aria-label={`Move to ${t(`tickets.status.${s}`)}`}
           >
-            {loading === s ? t("tickets.detail.movingTo") : t("tickets.detail.moveTo", { status: t(`tickets.status.${s}`) })}
-          </button>
+            {loading === s
+              ? t("tickets.detail.movingTo")
+              : t("tickets.detail.moveTo", { status: t(`tickets.status.${s}`) })}
+          </Button>
         ))}
       </div>
 
-      {apiError && (
-        <p role="alert" style={errorStyle}>{apiError}</p>
-      )}
+      {apiError && <p role="alert" className="mt-2 text-sm text-destructive">{apiError}</p>}
 
       {blocked && (
-        <div role="alert" style={blockedBox}>
-          <p style={{ margin: "0 0 0.5rem", fontWeight: 600, color: "var(--color-danger)" }}>
-            {blocked.detail}
-          </p>
-          <p style={{ margin: "0 0 0.25rem", fontSize: "0.875rem" }}>
-            {t("tickets.detail.transitionBlocked")}
-          </p>
-          <ul style={{ margin: "0.25rem 0 0", paddingLeft: "1.25rem", fontSize: "0.875rem" }}>
+        <div role="alert" className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+          <p className="font-semibold text-destructive text-sm mb-1">{blocked.detail}</p>
+          <p className="text-sm mb-1">{t("tickets.detail.transitionBlocked")}</p>
+          <ul className="text-sm list-disc pl-5">
             {blocked.missing_updates.map((u) => (
               <li key={u.user_id}>{u.email}</li>
             ))}
@@ -154,104 +150,38 @@ export function StatusTransitionButton({ ticket, onTransitioned }: StatusTransit
         </div>
       )}
 
-      {pendingToStatus && (
-        <div style={modalOverlay} onClick={handleCancelUpdate}>
-          <div style={modalBox} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem" }}>
-              {t("tickets.progress.submitUpdate")}
-            </h3>
-            <p style={{ margin: "0 0 1rem", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-              {t("tickets.detail.updateRequiredForTransition")}
-            </p>
-            <textarea
+      <Dialog
+        open={!!pendingToStatus}
+        onOpenChange={(open) => !open && handleCancelUpdate()}
+      >
+        <DialogContent className="w-full max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("tickets.progress.submitUpdate")}</DialogTitle>
+            <DialogDescription>{t("tickets.detail.updateRequiredForTransition")}</DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Textarea
               value={updateText}
               onChange={(e) => setUpdateText(e.target.value)}
               placeholder={t("tickets.progress.placeholder")}
               rows={4}
-              style={textareaStyle}
               disabled={updateLoading}
+              className="resize-y"
             />
             {updateError && (
-              <p role="alert" style={{ ...errorStyle, marginTop: "0.25rem" }}>{updateError}</p>
+              <p role="alert" className="text-sm text-destructive mt-1">{updateError}</p>
             )}
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "1rem" }}>
-              <button onClick={handleCancelUpdate} disabled={updateLoading} style={cancelBtn}>
-                {t("common.cancel")}
-              </button>
-              <button onClick={handleSubmitUpdate} disabled={updateLoading} style={transitionBtn}>
-                {updateLoading ? t("tickets.progress.submitting") : t("tickets.progress.submit")}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelUpdate} disabled={updateLoading}>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={handleSubmitUpdate} disabled={updateLoading}>
+              {updateLoading ? t("tickets.progress.submitting") : t("tickets.progress.submit")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-const transitionBtn: React.CSSProperties = {
-  padding: "0.4rem 0.9rem",
-  background: "var(--color-accent)",
-  color: "var(--color-text-inverse)",
-  border: "none",
-  borderRadius: 4,
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  cursor: "pointer",
-};
-
-const errorStyle: React.CSSProperties = {
-  marginTop: "0.5rem",
-  color: "var(--color-danger)",
-  fontSize: "0.875rem",
-};
-
-const blockedBox: React.CSSProperties = {
-  marginTop: "0.75rem",
-  padding: "0.75rem",
-  background: "#fef3f2",
-  border: "1px solid #f5c6c5",
-  borderRadius: 4,
-};
-
-const modalOverlay: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.4)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 1000,
-};
-
-const modalBox: React.CSSProperties = {
-  background: "var(--color-surface)",
-  borderRadius: 8,
-  padding: "1.5rem",
-  width: "100%",
-  maxWidth: 420,
-  boxShadow: "0 4px 24px rgba(0,0,0,0.18)",
-};
-
-const textareaStyle: React.CSSProperties = {
-  width: "100%",
-  boxSizing: "border-box",
-  padding: "0.5rem",
-  borderRadius: 4,
-  border: "1px solid var(--color-border)",
-  background: "var(--color-input-bg, var(--color-surface))",
-  color: "var(--color-text)",
-  fontSize: "0.9rem",
-  resize: "vertical",
-};
-
-const cancelBtn: React.CSSProperties = {
-  padding: "0.4rem 0.9rem",
-  background: "transparent",
-  color: "var(--color-text-secondary)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 4,
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  cursor: "pointer",
-};

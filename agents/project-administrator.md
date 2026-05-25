@@ -97,17 +97,38 @@ Run this bootstrap sequence once at the start of each agent run, before metrics 
 
 ### Prerequisites
 
-- `project-administrator/credentials.json` must exist with `{"username": "<admin-email>", "password": "<admin-password>"}`. If the file is missing, halt immediately with: `ERROR: project-administrator/credentials.json not found. Place admin credentials before running.`
+- `project-administrator/credentials.json` must exist with Ticket Manager connection and admin credentials in this shape:
+
+```json
+{
+  "host": "localhost",
+  "port": 5173,
+  "username": "admin@example.com",
+  "password": "<admin-password>"
+}
+```
+
+- If the file is missing, halt immediately with: `ERROR: project-administrator/credentials.json not found. Place admin credentials before running.`
 - See `project-administrator/credentials.json.example` for the expected format.
 
 ### Bootstrap Sequence
 
 **Step 1 — Authenticate as admin**
 
+Extract connection settings first:
+
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/auth/token \
+TM_HOST=$(jq -r '.host' project-administrator/credentials.json)
+TM_PORT=$(jq -r '.port' project-administrator/credentials.json)
+TM_USER=$(jq -r '.username' project-administrator/credentials.json)
+TM_PASSWORD=$(jq -r '.password' project-administrator/credentials.json)
+TM_BASE_URL="http://${TM_HOST}:${TM_PORT}"
+```
+
+```bash
+curl -s -X POST "$TM_BASE_URL/api/v1/auth/token" \
   -H "Content-Type: application/json" \
-  -d @project-administrator/credentials.json
+  -d "{\"email\":\"$TM_USER\",\"password\":\"$TM_PASSWORD\"}"
 # → {"access_token": "<jwt>", "token_type": "bearer"}
 ```
 
@@ -116,7 +137,7 @@ Store the `access_token` value. Use it as the Bearer token for all subsequent ad
 **Step 2 — Fetch existing users**
 
 ```bash
-curl -s http://localhost:8000/api/v1/admin/users \
+curl -s "$TM_BASE_URL/api/v1/admin/users" \
   -H "Authorization: Bearer <jwt>"
 # → [{"id": "<uuid>", "email": "...", ...}, ...]
 ```
@@ -139,13 +160,13 @@ password = secrets.token_urlsafe(18)  # 24-character URL-safe password
 
 ```bash
 # Create the user
-curl -s -X POST http://localhost:8000/api/v1/admin/users \
+curl -s -X POST "$TM_BASE_URL/api/v1/admin/users" \
   -H "Authorization: Bearer <jwt>" \
   -H "Content-Type: application/json" \
   -d '{"email": "{role}@agents.local", "password": "<password>", "role": "user"}'
 
 # Write credentials file
-echo '{"username": "{role}@agents.local", "password": "<password>"}' > {role}/credentials.json
+echo '{"host": "'"$TM_HOST"'", "port": '"$TM_PORT"', "username": "{role}@agents.local", "password": "<password>"}' > {role}/credentials.json
 ```
 
 **Case B — Account exists and `{role}/credentials.json` exists:**
@@ -153,9 +174,10 @@ echo '{"username": "{role}@agents.local", "password": "<password>"}' > {role}/cr
 Attempt login with stored credentials:
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/auth/token \
+ROLE_PASSWORD=$(jq -r '.password' {role}/credentials.json)
+curl -s -X POST "$TM_BASE_URL/api/v1/auth/token" \
   -H "Content-Type: application/json" \
-  -d @{role}/credentials.json
+  -d "{\"email\":\"{role}@agents.local\",\"password\":\"$ROLE_PASSWORD\"}"
 ```
 
 - If HTTP 200: credentials are valid, proceed.
@@ -163,13 +185,13 @@ curl -s -X POST http://localhost:8000/api/v1/auth/token \
 
 ```bash
 # Reset password
-curl -s -X PATCH http://localhost:8000/api/v1/admin/users/<user_id> \
+curl -s -X PATCH "$TM_BASE_URL/api/v1/admin/users/<user_id>" \
   -H "Authorization: Bearer <jwt>" \
   -H "Content-Type: application/json" \
   -d '{"password": "<new_password>"}'
 
 # Update credentials file
-echo '{"username": "{role}@agents.local", "password": "<new_password>"}' > {role}/credentials.json
+echo '{"host": "'"$TM_HOST"'", "port": '"$TM_PORT"', "username": "{role}@agents.local", "password": "<new_password>"}' > {role}/credentials.json
 ```
 
 **Step 4 — Signal bootstrap complete via brainstorm-mcp**
@@ -184,17 +206,76 @@ mcp__brainstorm__send_message(
   reply_expected=false,
   payload={
     "type": "bootstrap-complete",
+    "host": "<ticket-manager-host>",
+    "port": <ticket-manager-port>,
     "roles": ["product-manager", "software-architect", "security-architect",
                "frontend", "backend", "devops", "code-reviewer", "autotester"]
   }
 )
 ```
 
+Replace placeholders with the values from `TM_HOST` and `TM_PORT` so all agents can resolve the Ticket Manager endpoint.
+
 ### Security Notes
 
 - Never log or print passwords.
 - Credential files (`*/credentials.json`) are gitignored — verify with `git status` before committing.
 - The example file `project-administrator/credentials.json.example` is committed; the actual `credentials.json` is not.
+
+## Ticket Manager Ticket Operations
+
+Project Administrator can also manage tickets directly when coordination or reconciliation tasks require it.
+
+### Read connection settings
+
+```bash
+CRED_FILE="project-administrator/credentials.json"
+TM_HOST=$(jq -r '.host' "$CRED_FILE")
+TM_PORT=$(jq -r '.port' "$CRED_FILE")
+TM_USER=$(jq -r '.username' "$CRED_FILE")
+TM_PASSWORD=$(jq -r '.password' "$CRED_FILE")
+TM_BASE_URL="http://${TM_HOST}:${TM_PORT}"
+
+TOKEN=$(curl -s -X POST "$TM_BASE_URL/api/v1/auth/token" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"$TM_USER\",\"password\":\"$TM_PASSWORD\"}" \
+  | jq -r '.access_token')
+```
+
+### Create a ticket
+
+```bash
+curl -s -X POST "$TM_BASE_URL/api/v1/projects/<project_id>/tickets" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Reconcile missing metrics",
+    "description": "Follow up with agents that still have reporting gaps",
+    "ticket_type": "task",
+    "ticket_spec": "operations",
+    "tags": ["project-admin", "reporting"]
+  }'
+```
+
+### Update a ticket (progress update)
+
+```bash
+curl -s -X PUT "$TM_BASE_URL/api/v1/tickets/<ticket_id>/progress" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Reconciliation checkpoint complete."}'
+```
+
+### Transition a ticket
+
+```bash
+curl -s -X POST "$TM_BASE_URL/api/v1/tickets/<ticket_id>/transitions" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status":"IN_REVIEW"}'
+```
+
+Only assignees may transition tickets. Valid statuses: `OPEN`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CLOSED`.
 
 ---
 

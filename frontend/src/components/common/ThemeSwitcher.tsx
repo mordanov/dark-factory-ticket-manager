@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { useTheme, type ThemeKey } from "../../hooks/useTheme";
+import { useTheme, type ThemeKey } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
 const THEMES: { key: ThemeKey; swatch: string }[] = [
   { key: "light", swatch: "#ffffff" },
@@ -15,37 +16,20 @@ export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div style={container} role="group" aria-label={t("theme.label")}>
+    <div className="flex gap-1 items-center" role="group" aria-label={t("theme.label")}>
       {THEMES.map(({ key, swatch }) => (
         <button
           key={key}
           onClick={() => setTheme(key)}
           title={t(`theme.themes.${key}`)}
           aria-pressed={theme === key}
-          style={{
-            ...swatchBtn,
-            background: swatch,
-            outline: theme === key ? "2px solid var(--color-accent)" : "2px solid transparent",
-            outlineOffset: 2,
-          }}
+          className={cn(
+            "h-5 w-5 rounded-full border border-border cursor-pointer p-0 flex-shrink-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            theme === key ? "ring-2 ring-primary ring-offset-2" : ""
+          )}
+          style={{ background: swatch }} // swatch-color-required
         />
       ))}
     </div>
   );
 }
-
-const container: React.CSSProperties = {
-  display: "flex",
-  gap: "0.25rem",
-  alignItems: "center",
-};
-
-const swatchBtn: React.CSSProperties = {
-  width: 20,
-  height: 20,
-  borderRadius: "50%",
-  border: "1px solid var(--color-border)",
-  cursor: "pointer",
-  padding: 0,
-  flexShrink: 0,
-};

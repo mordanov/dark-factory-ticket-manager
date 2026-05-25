@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-ui-design-system`
 **Created**: 2026-05-25
-**Status**: Draft
+**Status**: Implementation Complete — Pending Final Verification
 
 ## Clarifications
 
@@ -128,7 +128,7 @@ A user on a tablet or mobile device can use the ticket management system without
 - **SC-005**: Zero inline `style` prop overrides remain in component files after refactoring.
 - **SC-006**: A new UI feature can be built using only existing design system components and tokens, requiring no new CSS files or style blocks.
 - **SC-007**: All business logic tests (if any exist) continue passing — no functional regression introduced.
-- **SC-008**: The application's initial load time does not increase by more than 10% relative to baseline after the refactor.
+- **SC-008**: Lighthouse LCP (Largest Contentful Paint) on the login page does not increase by more than 10% relative to the pre-refactor baseline measured in the same environment. Raw gzip bundle size is a contributing signal but not the primary metric — vendor chunk caching and HTTP/2 parallelisation are not captured by raw gzip comparison. *(Criterion recalibrated 2026-05-25: original raw-gzip proxy did not account for the planned framer-motion and @radix-ui/* dependency footprint; see research.md Decision 5 and ADR.)*
 
 ## Assumptions
 

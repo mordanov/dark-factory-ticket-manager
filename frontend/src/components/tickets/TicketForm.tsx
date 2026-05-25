@@ -1,7 +1,18 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { TagInput } from "./TagInput";
-import type { TicketType, TicketSpec } from "../../types";
+import { TagInput } from "@/components/tickets/TagInput";
+import type { TicketType, TicketSpec } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface TicketFormValues {
   title: string;
@@ -32,13 +43,7 @@ const TICKET_SPECS: TicketSpec[] = [
   "business_analysis", "product_management", "other",
 ];
 
-export function TicketForm({
-  initialValues,
-  onSubmit,
-  onCancel,
-  submitLabel,
-  showTags = true,
-}: TicketFormProps) {
+export function TicketForm({ initialValues, onSubmit, onCancel, submitLabel, showTags = true }: TicketFormProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
@@ -65,10 +70,7 @@ export function TicketForm({
         description: description.trim() || null,
         ticket_type: ticketType,
         ticket_spec: ticketSpec as TicketSpec,
-        urgent,
-        blocker,
-        bugfix,
-        tags,
+        urgent, blocker, bugfix, tags,
       });
     } catch (err: unknown) {
       setError(extractErrorMessage(err, t));
@@ -77,123 +79,107 @@ export function TicketForm({
     }
   }
 
-  const flagDefs: [string, boolean, (v: boolean) => void, string][] = [
-    [t("tickets.flags.urgent"), urgent, setUrgent, "#e74c3c"],
-    [t("tickets.flags.blocker"), blocker, setBlocker, "#c0392b"],
-    [t("tickets.flags.bugfix"), bugfix, setBugfix, "#8e44ad"],
-  ];
-
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      {/* Title */}
-      <div style={field}>
-        <label htmlFor="ticket-title" style={label}>
-          {t("tickets.form.title")} <span style={{ color: "var(--color-danger)" }}>*</span>
-        </label>
-        <input
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="ticket-title">
+          {t("tickets.form.title")} <span className="text-destructive">*</span>
+        </Label>
+        <Input
           id="ticket-title"
-          type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          style={input}
           disabled={loading}
           maxLength={500}
         />
       </div>
 
-      {/* Description */}
-      <div style={field}>
-        <label htmlFor="ticket-description" style={label}>{t("tickets.form.description")}</label>
-        <textarea
+      <div className="space-y-2">
+        <Label htmlFor="ticket-description">{t("tickets.form.description")}</Label>
+        <Textarea
           id="ticket-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          style={{ ...input, resize: "vertical" }}
           disabled={loading}
+          className="resize-y"
         />
       </div>
 
-      {/* Type + Spec side by side */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
-        <div>
-          <label htmlFor="ticket-type" style={label}>{t("tickets.form.type")}</label>
-          <select
-            id="ticket-type"
-            value={ticketType}
-            onChange={(e) => setTicketType(e.target.value as TicketType)}
-            style={select}
-            disabled={loading}
-          >
-            {TICKET_TYPES.map((tp) => (
-              <option key={tp} value={tp}>{t(`tickets.type.${tp}`)}</option>
-            ))}
-          </select>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="ticket-type">{t("tickets.form.type")}</Label>
+          <Select value={ticketType} onValueChange={(v) => setTicketType(v as TicketType)} disabled={loading}>
+            <SelectTrigger id="ticket-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TICKET_TYPES.map((tp) => (
+                <SelectItem key={tp} value={tp}>{t(`tickets.type.${tp}`)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div>
-          <label htmlFor="ticket-spec" style={label}>
-            {t("tickets.form.spec")} <span style={{ color: "var(--color-danger)" }}>*</span>
-          </label>
-          <select
-            id="ticket-spec"
-            value={ticketSpec}
-            onChange={(e) => setTicketSpec(e.target.value as TicketSpec | "")}
-            style={{ ...select, ...(ticketSpec === "" ? { color: "var(--color-text-secondary)" } : {}) }}
-            disabled={loading}
-          >
-            <option value="">{t("tickets.form.specPlaceholder")}</option>
-            {TICKET_SPECS.map((s) => (
-              <option key={s} value={s}>{t(`tickets.spec.${s}`)}</option>
-            ))}
-          </select>
+        <div className="space-y-2">
+          <Label htmlFor="ticket-spec">
+            {t("tickets.form.spec")} <span className="text-destructive">*</span>
+          </Label>
+          <Select value={ticketSpec || "__none__"} onValueChange={(v) => setTicketSpec(v === "__none__" ? "" : v as TicketSpec)} disabled={loading}>
+            <SelectTrigger id="ticket-spec">
+              <SelectValue placeholder={t("tickets.form.specPlaceholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">{t("tickets.form.specPlaceholder")}</SelectItem>
+              {TICKET_SPECS.map((s) => (
+                <SelectItem key={s} value={s}>{t(`tickets.spec.${s}`)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Flags */}
-      <div style={{ marginBottom: "1rem" }}>
-        <span style={label}>{t("tickets.form.flags")}</span>
-        <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.3rem" }}>
-          {flagDefs.map(([name, val, setter, color]) => (
-            <label key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer", fontSize: "0.875rem" }}>
+      <div>
+        <Label className="block mb-2">{t("tickets.form.flags")}</Label>
+        <div className="flex gap-6">
+          {([
+            [t("tickets.flags.urgent"), urgent, setUrgent],
+            [t("tickets.flags.blocker"), blocker, setBlocker],
+            [t("tickets.flags.bugfix"), bugfix, setBugfix],
+          ] as [string, boolean, (v: boolean) => void][]).map(([name, val, setter]) => (
+            <label key={name} className="flex items-center gap-1.5 cursor-pointer text-sm">
               <input
                 type="checkbox"
                 checked={val}
                 onChange={(e) => setter(e.target.checked)}
                 disabled={loading}
-                style={{ accentColor: color, width: 15, height: 15 }}
+                className="w-4 h-4 accent-primary"
               />
-              <span style={{ fontWeight: val ? 600 : 400, color: val ? color : "var(--color-text-secondary)", textTransform: "capitalize" }}>
-                {name}
-              </span>
+              <span className={val ? "font-semibold" : "text-muted-foreground capitalize"}>{name}</span>
             </label>
           ))}
         </div>
       </div>
 
-      {/* Tags */}
       {showTags && (
-        <div style={field}>
-          <label style={label}>
-            {t("tickets.form.tags")} <span style={{ fontWeight: 400, color: "var(--color-text-secondary)" }}>{t("tickets.form.tagsHint")}</span>
-          </label>
+        <div className="space-y-2">
+          <Label>
+            {t("tickets.form.tags")}{" "}
+            <span className="font-normal text-muted-foreground">{t("tickets.form.tagsHint")}</span>
+          </Label>
           <TagInput value={tags} onChange={setTags} disabled={loading} />
         </div>
       )}
 
-      {error && (
-        <p role="alert" style={{ color: "var(--color-danger)", fontSize: "0.875rem", margin: "0 0 0.75rem" }}>
-          {error}
-        </p>
-      )}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button type="submit" style={submitBtn} disabled={loading}>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={loading}>
           {loading ? t("tickets.form.saving") : resolvedSubmitLabel}
-        </button>
+        </Button>
         {onCancel && (
-          <button type="button" onClick={onCancel} style={cancelBtn} disabled={loading}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
             {t("tickets.form.cancel")}
-          </button>
+          </Button>
         )}
       </div>
     </form>
@@ -207,50 +193,3 @@ function extractErrorMessage(err: unknown, t: (key: string) => string): string {
   }
   return t("tickets.form.error");
 }
-
-const field: React.CSSProperties = { marginBottom: "1rem" };
-const label: React.CSSProperties = {
-  display: "block",
-  marginBottom: "0.25rem",
-  fontWeight: 500,
-  fontSize: "0.875rem",
-};
-const input: React.CSSProperties = {
-  width: "100%",
-  padding: "0.5rem 0.75rem",
-  border: "1px solid var(--color-border)",
-  borderRadius: 4,
-  fontSize: "0.875rem",
-  boxSizing: "border-box",
-  background: "var(--color-surface)",
-  color: "var(--color-text-primary)",
-};
-const select: React.CSSProperties = {
-  width: "100%",
-  padding: "0.5rem 0.6rem",
-  border: "1px solid var(--color-border)",
-  borderRadius: 4,
-  fontSize: "0.875rem",
-  background: "var(--color-surface)",
-  color: "var(--color-text-primary)",
-  boxSizing: "border-box",
-};
-const submitBtn: React.CSSProperties = {
-  padding: "0.5rem 1.25rem",
-  background: "var(--color-accent)",
-  color: "var(--color-text-inverse)",
-  border: "none",
-  borderRadius: 4,
-  fontWeight: 600,
-  cursor: "pointer",
-  fontSize: "0.875rem",
-};
-const cancelBtn: React.CSSProperties = {
-  padding: "0.5rem 1.25rem",
-  background: "var(--color-bg)",
-  color: "var(--color-text-primary)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 4,
-  cursor: "pointer",
-  fontSize: "0.875rem",
-};

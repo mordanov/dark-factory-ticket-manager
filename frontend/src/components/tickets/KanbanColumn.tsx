@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import type { TicketResponse, TicketStatus, TransitionBlockedError } from "../../types";
-import { WORKFLOW_TRANSITIONS } from "../../types";
-import { transitionTicket } from "../../api/tickets";
-import { KanbanCard } from "./KanbanCard";
+import { cn } from "@/lib/utils";
+import type { TicketResponse, TicketStatus, TransitionBlockedError } from "@/types";
+import { WORKFLOW_TRANSITIONS } from "@/types";
+import { transitionTicket } from "@/api/tickets";
+import { KanbanCard } from "@/components/tickets/KanbanCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   status: TicketStatus;
@@ -37,18 +40,14 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
     e.preventDefault();
     setIsDragOver(false);
     setError(null);
-
     const ticketId = e.dataTransfer.getData("ticketId");
     const fromStatus = e.dataTransfer.getData("fromStatus") as TicketStatus;
-
     if (!ticketId || fromStatus === status) return;
-
     const allowed = WORKFLOW_TRANSITIONS[fromStatus] ?? [];
     if (!allowed.includes(status)) {
       setError(`Tickets cannot move directly from ${fromStatus.replace("_", " ")} to ${label}.`);
       return;
     }
-
     setLoading(true);
     try {
       const result = await transitionTicket(ticketId, status);
@@ -65,128 +64,54 @@ export function KanbanColumn({ status, label, color, tickets, projectId }: Props
   }
 
   return (
-    <div style={column}>
-      <div style={columnHeader}>
-        <span style={{ ...dot, background: color }} />
-        <span style={columnLabel}>{label}</span>
-        <span style={countBadge}>{tickets.length}</span>
+    <div className="flex flex-col gap-2 min-w-[280px] w-72">
+      <div className="flex items-center justify-between px-1 mb-1">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} /> {/* swatch-color-required */}
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</h3>
+        </div>
+        <Badge variant="secondary" className="text-xs">{tickets.length}</Badge>
       </div>
 
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        style={{
-          ...dropZone,
-          background: isDragOver ? "var(--color-accent-subtle)" : "var(--color-bg)",
-          border: isDragOver ? "2px dashed var(--color-accent)" : "2px solid transparent",
-          opacity: loading ? 0.6 : 1,
-        }}
+        className={cn(
+          "flex flex-col gap-2 min-h-[240px] rounded-lg p-2 transition-colors duration-100",
+          isDragOver ? "bg-accent border-2 border-dashed border-primary" : "bg-muted/30 border-2 border-transparent",
+          loading && "opacity-60"
+        )}
       >
         {tickets.map((ticket) => (
           <KanbanCard key={ticket.id} ticket={ticket} />
         ))}
         {tickets.length === 0 && (
-          <p style={emptyMsg}>{t("tickets.dropHere")}</p>
+          <p className="text-center text-muted-foreground text-xs mt-6 pointer-events-none">
+            {t("tickets.dropHere")}
+          </p>
         )}
       </div>
 
       {error !== null && (
-        <div style={errorBox}>
+        <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
           {typeof error === "string" ? (
             error
           ) : (
             <>
               <strong>Progress updates required before this transition:</strong>
-              <ul style={{ margin: "4px 0 0", paddingLeft: 16 }}>
+              <ul className="mt-1 pl-4 list-disc">
                 {error.missing_updates.map((u) => (
                   <li key={u.user_id}>{u.email}</li>
                 ))}
               </ul>
             </>
           )}
-          <button onClick={() => setError(null)} style={dismissBtn}>
+          <Button variant="ghost" size="sm" className="mt-1 h-6 text-xs p-0 text-destructive" onClick={() => setError(null)}>
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
     </div>
   );
 }
-
-const column: React.CSSProperties = {
-  flex: "1 1 200px",
-  minWidth: 200,
-  maxWidth: 280,
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-};
-
-const columnHeader: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  marginBottom: 4,
-};
-
-const dot: React.CSSProperties = {
-  width: 10,
-  height: 10,
-  borderRadius: "50%",
-  flexShrink: 0,
-};
-
-const columnLabel: React.CSSProperties = {
-  fontSize: "0.78rem",
-  fontWeight: 700,
-  color: "var(--color-text-secondary)",
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-};
-
-const countBadge: React.CSSProperties = {
-  marginLeft: "auto",
-  background: "var(--color-border)",
-  color: "var(--color-text-secondary)",
-  borderRadius: 10,
-  padding: "1px 8px",
-  fontSize: "0.75rem",
-  fontWeight: 600,
-};
-
-const dropZone: React.CSSProperties = {
-  flex: 1,
-  minHeight: 240,
-  borderRadius: 8,
-  padding: "8px 6px",
-  transition: "background 0.12s ease, border-color 0.12s ease",
-};
-
-const emptyMsg: React.CSSProperties = {
-  textAlign: "center",
-  color: "var(--color-text-secondary)",
-  fontSize: "0.78rem",
-  marginTop: 24,
-  pointerEvents: "none",
-};
-
-const errorBox: React.CSSProperties = {
-  padding: "8px 10px",
-  background: "#ffeaea",
-  border: "1px solid #f5c6c6",
-  borderRadius: 6,
-  fontSize: "0.78rem",
-  color: "var(--color-danger)",
-};
-
-const dismissBtn: React.CSSProperties = {
-  marginTop: 6,
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  color: "var(--color-danger)",
-  padding: 0,
-  fontSize: "0.75rem",
-  textDecoration: "underline",
-};

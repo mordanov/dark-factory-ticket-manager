@@ -1,180 +1,96 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { TicketResponse } from "../../types";
-
-const STATUS_COLORS: Record<string, string> = {
-  OPEN: "#2980b9",
-  IN_PROGRESS: "#e67e22",
-  IN_REVIEW: "#8e44ad",
-  DONE: "#27ae60",
-  CLOSED: "#7f8c8d",
-};
+import { motion } from "framer-motion";
+import type { TicketResponse } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cardHover } from "@/lib/motion";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+  if (status === "DONE") return "default";
+  if (status === "CLOSED") return "outline";
+  if (status === "IN_PROGRESS") return "secondary";
+  return "outline";
+}
+
 interface TicketCardProps {
   ticket: TicketResponse;
+  onClick?: () => void;
+  className?: string;
 }
 
-export function TicketCard({ ticket }: TicketCardProps) {
+export function TicketCard({ ticket, className }: TicketCardProps) {
   const { t } = useTranslation();
-  const statusColor = STATUS_COLORS[ticket.status] ?? "#7f8c8d";
   const activeFlags = [
-    ticket.urgent && { label: "URGENT", color: "#e74c3c", bg: "#fdecea" },
-    ticket.blocker && { label: "BLOCKER", color: "#c0392b", bg: "#fce8e8" },
-    ticket.bugfix && { label: "BUGFIX", color: "#8e44ad", bg: "#f3e8fd" },
-  ].filter(Boolean) as { label: string; color: string; bg: string }[];
+    ticket.urgent && "URGENT",
+    ticket.blocker && "BLOCKER",
+    ticket.bugfix && "BUGFIX",
+  ].filter(Boolean) as string[];
 
   return (
-    <div style={card}>
-      {/* Top row: display_id + type/spec + status */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.4rem" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-          {ticket.display_id && (
-            <span style={idBadge}>{ticket.display_id}</span>
+    <motion.div {...cardHover} className={className}>
+      <Card className="cursor-pointer hover:shadow-md transition-shadow mb-2">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start gap-2 mb-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {ticket.display_id && (
+                <span className="font-mono text-xs font-bold text-primary bg-accent px-1.5 py-0.5 rounded border border-border">
+                  {ticket.display_id}
+                </span>
+              )}
+              <Badge variant="secondary" className="text-xs">{t(`tickets.type.${ticket.ticket_type}`)}</Badge>
+              {ticket.ticket_spec && (
+                <Badge variant="outline" className="text-xs text-green-700 border-green-300">{t(`tickets.spec.${ticket.ticket_spec}`)}</Badge>
+              )}
+            </div>
+            <Badge variant={statusVariant(ticket.status)} className="text-xs shrink-0">
+              {t(`tickets.status.${ticket.status}`)}
+            </Badge>
+          </div>
+
+          <Link to={`/tickets/${ticket.id}`} className="block font-semibold text-sm text-foreground hover:underline line-clamp-2 mb-1">
+            {ticket.title}
+          </Link>
+
+          <div className="flex gap-1.5 text-xs text-muted-foreground">
+            <span>Created {formatDate(ticket.created_at)}</span>
+            <span>·</span>
+            <span>Updated {formatDate(ticket.updated_at)}</span>
+          </div>
+
+          {ticket.assignees.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {ticket.assignees.map((a) => (
+                <span key={a.user_id} className="inline-block bg-accent text-accent-foreground rounded-full px-2 py-0.5 text-xs" title={a.email}>
+                  {a.email.split("@")[0]}
+                </span>
+              ))}
+            </div>
           )}
-          <span style={typeBadge}>{t(`tickets.type.${ticket.ticket_type}`)}</span>
-          {ticket.ticket_spec && (
-            <span style={specBadge}>{t(`tickets.spec.${ticket.ticket_spec}`)}</span>
+
+          {ticket.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {ticket.tags.map((tg) => (
+                <span key={tg.id} className="inline-block bg-accent text-accent-foreground rounded-full px-2 py-0.5 text-xs">
+                  {tg.name}
+                </span>
+              ))}
+            </div>
           )}
-        </div>
-        <span style={{ ...statusBadge, background: statusColor, flexShrink: 0 }}>
-          {t(`tickets.status.${ticket.status}`)}
-        </span>
-      </div>
 
-      {/* Title */}
-      <Link to={`/tickets/${ticket.id}`} style={titleLink}>
-        {ticket.title}
-      </Link>
-
-      {/* Timestamps */}
-      <div style={metaRow}>
-        <span>Created {formatDate(ticket.created_at)}</span>
-        <span style={{ color: "var(--color-text-secondary)" }}>·</span>
-        <span>Updated {formatDate(ticket.updated_at)}</span>
-      </div>
-
-      {/* Assignees */}
-      {ticket.assignees.length > 0 && (
-        <div style={{ marginTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.3rem", alignItems: "center" }}>
-          {ticket.assignees.map((a) => (
-            <span key={a.user_id} style={assigneeChip} title={a.email}>
-              {a.email.split("@")[0]}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Tags */}
-      {ticket.tags.length > 0 && (
-        <div style={{ marginTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
-          {ticket.tags.map((tg) => (
-            <span key={tg.id} style={tagPill}>{tg.name}</span>
-          ))}
-        </div>
-      )}
-
-      {/* Active flags */}
-      {activeFlags.length > 0 && (
-        <div style={{ marginTop: "0.5rem", display: "flex", gap: "0.3rem" }}>
-          {activeFlags.map((f) => (
-            <span key={f.label} style={{ ...flagBadge, color: f.color, background: f.bg, borderColor: f.color }}>
-              {f.label}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
+          {activeFlags.length > 0 && (
+            <div className="flex gap-1 mt-1.5">
+              {activeFlags.map((f) => (
+                <Badge key={f} variant="destructive" className="text-xs">{f}</Badge>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
-
-const card: React.CSSProperties = {
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 8,
-  padding: "0.875rem 1rem",
-  marginBottom: "0.5rem",
-};
-const idBadge: React.CSSProperties = {
-  fontFamily: "monospace",
-  fontSize: "0.72rem",
-  fontWeight: 700,
-  color: "var(--color-accent)",
-  background: "var(--color-accent-subtle)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 4,
-  padding: "0.1rem 0.4rem",
-  whiteSpace: "nowrap",
-};
-const typeBadge: React.CSSProperties = {
-  fontSize: "0.72rem",
-  fontWeight: 600,
-  color: "var(--color-text-secondary)",
-  background: "var(--color-bg)",
-  borderRadius: 4,
-  padding: "0.1rem 0.4rem",
-  textTransform: "capitalize",
-};
-const specBadge: React.CSSProperties = {
-  fontSize: "0.72rem",
-  fontWeight: 600,
-  color: "#2c7a4b",
-  background: "#eafaf1",
-  border: "1px solid #b7e4c7",
-  borderRadius: 4,
-  padding: "0.1rem 0.4rem",
-};
-const statusBadge: React.CSSProperties = {
-  display: "inline-block",
-  padding: "0.15rem 0.6rem",
-  borderRadius: 12,
-  color: "#fff",
-  fontSize: "0.72rem",
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-};
-const titleLink: React.CSSProperties = {
-  display: "block",
-  fontWeight: 600,
-  color: "var(--color-text-primary)",
-  fontSize: "0.95rem",
-  textDecoration: "none",
-  marginBottom: "0.25rem",
-  lineHeight: 1.4,
-};
-const metaRow: React.CSSProperties = {
-  display: "flex",
-  gap: "0.4rem",
-  fontSize: "0.75rem",
-  color: "var(--color-text-secondary)",
-  marginTop: "0.15rem",
-};
-const assigneeChip: React.CSSProperties = {
-  display: "inline-block",
-  background: "var(--color-accent-subtle)",
-  color: "var(--color-accent)",
-  borderRadius: 10,
-  padding: "0.1rem 0.5rem",
-  fontSize: "0.75rem",
-  fontWeight: 500,
-};
-const tagPill: React.CSSProperties = {
-  display: "inline-block",
-  background: "var(--color-accent-subtle)",
-  color: "var(--color-accent)",
-  borderRadius: 12,
-  padding: "0.1rem 0.5rem",
-  fontSize: "0.75rem",
-  fontWeight: 500,
-};
-const flagBadge: React.CSSProperties = {
-  fontSize: "0.7rem",
-  fontWeight: 700,
-  borderRadius: 4,
-  padding: "0.1rem 0.45rem",
-  border: "1px solid",
-  letterSpacing: "0.03em",
-};

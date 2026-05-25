@@ -9,6 +9,7 @@
     "signIn": "Sign in",
     "signingIn": "Signing in…",
     "signOut": "Sign out",
+    "logout": "Log out",
     "error": {
       "required": "Email and password are required.",
       "invalid": "Invalid email or password.",
@@ -18,7 +19,10 @@
   },
   "nav": {
     "backToProjects": "← Projects",
-    "backToProject": "← Back to project"
+    "backToProject": "← Back to project",
+    "projects": "Projects",
+    "admin": "Admin",
+    "openMenu": "Open navigation menu"
   },
   "projects": {
     "title": "Projects",
@@ -241,6 +245,7 @@
   },
   "theme": {
     "label": "Theme",
+    "toggleDark": "Toggle dark mode",
     "themes": {
       "light": "Light",
       "dark": "Dark",

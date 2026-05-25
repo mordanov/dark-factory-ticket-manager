@@ -270,88 +270,102 @@ Product work is done when:
 
 ## Platform Authentication
 
-When running as an automated agent skill, authenticate to the ticket platform API before performing any ticket operations.
+Use Ticket Manager connection details provisioned by `project-administrator` in `product-manager/credentials.json`.
 
-### Step 1 — Wait for bootstrap signal
+### Credential format
 
-Before reading credentials or making any ticket platform API call, wait for `project-administrator` to confirm all agent accounts exist. Call immediately after joining the brainstorm project:
+Each agent credential file must include host, port, username, and password:
 
+```json
+{
+  "host": "localhost",
+  "port": 5173,
+  "username": "product-manager@agents.local",
+  "password": "<generated-password>"
+}
 ```
-mcp__brainstorm__receive_messages(
-  project_id="ticket-manager",
-  agent_name="product-manager",
-  wait=true,
-  timeout_seconds=120
-)
-```
 
-Poll the returned messages until one has `payload.type == "bootstrap-complete"` and `from_agent == "project-administrator"`. If the 120-second timeout expires without receiving that signal, halt with error: `"Bootstrap signal not received from project-administrator within timeout"`.
+### Step 1 - Wait for bootstrap signal
 
-### Step 2 — Read credentials
+After joining brainstorm, wait for `project-administrator` to broadcast `payload.type == "bootstrap-complete"` before calling Ticket Manager.
+
+### Step 2 - Read credentials and build base URL
 
 ```bash
-cat product-manager/credentials.json
-# Expected format: {"username": "product-manager@agents.local", "password": "<generated>"}
+CRED_FILE="product-manager/credentials.json"
+test -f "$CRED_FILE" || { echo "Missing $CRED_FILE" >&2; exit 1; }
+
+TM_HOST=$(jq -r '.host' "$CRED_FILE")
+TM_PORT=$(jq -r '.port' "$CRED_FILE")
+TM_USER=$(jq -r '.username' "$CRED_FILE")
+TM_PASSWORD=$(jq -r '.password' "$CRED_FILE")
+TM_BASE_URL="http://${TM_HOST}:${TM_PORT}"
+
+for v in TM_HOST TM_PORT TM_USER TM_PASSWORD; do
+  [ -n "${!v}" ] && [ "${!v}" != "null" ] || { echo "Invalid $CRED_FILE: missing $v" >&2; exit 1; }
+done
 ```
 
-Halt with a descriptive error if the file is missing or contains invalid JSON.
-
-### Step 3 — Obtain JWT
+### Step 3 - Obtain JWT
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/auth/token \
+TOKEN=$(curl -s -X POST "$TM_BASE_URL/api/v1/auth/token" \
   -H "Content-Type: application/json" \
-  -d '{"email": "product-manager@agents.local", "password": "<password>"}' \
-| jq -r '.access_token'
+  -d "{\"email\":\"$TM_USER\",\"password\":\"$TM_PASSWORD\"}" \
+  | jq -r '.access_token')
+
+[ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo "Token request failed" >&2; exit 1; }
 ```
 
-Store the returned `access_token` for all subsequent calls.
+### Step 4 - Create, update, and transition tickets
 
-### Step 4 — Use Bearer token on all API calls
+Use `Authorization: Bearer $TOKEN` on every request.
 
-Pass `Authorization: Bearer <access_token>` on every request.
-
-#### Create a project
+#### Create a ticket
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/projects \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "agent-api-sdlc", "description": "Feature 003 SDLC run"}'
-```
-
-#### Create a ticket (with type, spec, tags, and optional assignee)
-
-```bash
-curl -s -X POST http://localhost:8000/api/v1/projects/<project_id>/tickets \
-  -H "Authorization: Bearer <access_token>" \
+curl -s -X POST "$TM_BASE_URL/api/v1/projects/<project_id>/tickets" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "T002: Add Alembic migration 014",
-    "description": "Create 014_add_ticket_resource_fields.py migration",
+    "title": "<task-title>",
+    "description": "<task-description>",
     "ticket_type": "task",
-    "ticket_spec": "backend",
-    "tags": ["feature-003", "backend", "migration"]
+    "ticket_spec": "product",
+    "tags": ["agent-work", "product-manager"]
   }'
 ```
 
-#### Add an assignee to a ticket
+#### Update a ticket (progress update)
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/assignments \
-  -H "Authorization: Bearer <access_token>" \
+curl -s -X PUT "$TM_BASE_URL/api/v1/tickets/<ticket_id>/progress" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"user_id": "<agent_user_id>"}'
+  -d '{"content":"Acceptance criteria and scope validated."}'
 ```
 
-#### Increment resource counters after completing work
+#### Transition a ticket
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/resources \
-  -H "Authorization: Bearer <access_token>" \
+curl -s -X POST "$TM_BASE_URL/api/v1/tickets/<ticket_id>/transitions" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 1500}'
+  -d '{"to_status":"IN_REVIEW"}'
 ```
+
+Only assignees may transition tickets. Valid statuses: `OPEN`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CLOSED`.
+
+#### Report ticket resource usage after completion
+
+```bash
+curl -s -X POST "$TM_BASE_URL/api/v1/tickets/<ticket_id>/resources" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta":300,"tokens_consumed_delta":1500}'
+```
+
+If any request returns `401`, re-authenticate by repeating Step 3.
 
 ---
 
