@@ -18,7 +18,8 @@
   },
   "nav": {
     "backToProjects": "← Проекты",
-    "backToProject": "← Назад к проекту"
+    "backToProject": "← Назад к проекту",
+    "openMenu": "Открыть меню навигации"
   },
   "projects": {
     "title": "Проекты",

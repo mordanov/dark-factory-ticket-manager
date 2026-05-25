@@ -1,8 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useAuthStore } from "../store/auth";
-import { login } from "../api/auth";
+import { useAuthStore } from "@/store/auth";
+import { login } from "@/api/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -15,10 +19,7 @@ export function LoginPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!email || !password) {
-      setError(t("auth.error.required"));
-      return;
-    }
+    if (!email || !password) { setError(t("auth.error.required")); return; }
     setError(null);
     setLoading(true);
     try {
@@ -31,53 +32,52 @@ export function LoginPage() {
       });
       navigate("/projects", { replace: true });
     } catch (err: unknown) {
-      const msg = extractErrorMessage(err, t);
-      setError(msg);
+      setError(extractErrorMessage(err, t));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.heading}>{t("app.name")}</h1>
-        <form onSubmit={handleSubmit} noValidate>
-          <div style={styles.field}>
-            <label htmlFor="email" style={styles.label}>{t("auth.email")}</label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={styles.input}
-              disabled={loading}
-              aria-describedby={error ? "login-error" : undefined}
-            />
-          </div>
-          <div style={styles.field}>
-            <label htmlFor="password" style={styles.label}>{t("auth.password")}</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-              disabled={loading}
-            />
-          </div>
-          {error && (
-            <p id="login-error" role="alert" style={styles.error}>
-              {error}
-            </p>
-          )}
-          <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? t("auth.signingIn") : t("auth.signIn")}
-          </button>
-        </form>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-center text-2xl">{t("app.name")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">{t("auth.email")}</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                aria-describedby={error ? "login-error" : undefined}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">{t("auth.password")}</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            {error && (
+              <p id="login-error" role="alert" className="text-sm text-destructive">{error}</p>
+            )}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? t("auth.signingIn") : t("auth.signIn")}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -92,11 +92,7 @@ function parseJwtPayload(token: string): Record<string, unknown> {
 }
 
 function extractErrorMessage(err: unknown, t: (key: string) => string): string {
-  if (
-    typeof err === "object" &&
-    err !== null &&
-    "response" in err
-  ) {
+  if (typeof err === "object" && err !== null && "response" in err) {
     const resp = (err as { response: { status: number; data?: { detail?: string } } }).response;
     if (resp.status === 401) return t("auth.error.invalid");
     if (resp.status === 403) return t("auth.error.blocked");
@@ -104,59 +100,3 @@ function extractErrorMessage(err: unknown, t: (key: string) => string): string {
   }
   return t("auth.error.unexpected");
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "var(--color-bg)",
-  },
-  card: {
-    background: "var(--color-surface)",
-    borderRadius: 8,
-    padding: "2rem",
-    width: "100%",
-    maxWidth: 400,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-  },
-  heading: {
-    margin: "0 0 1.5rem",
-    fontSize: "1.5rem",
-    fontWeight: 600,
-    textAlign: "center",
-  },
-  field: { marginBottom: "1rem" },
-  label: {
-    display: "block",
-    marginBottom: "0.25rem",
-    fontWeight: 500,
-    fontSize: "0.875rem",
-  },
-  input: {
-    width: "100%",
-    padding: "0.5rem 0.75rem",
-    border: "1px solid var(--color-border)",
-    borderRadius: 4,
-    fontSize: "1rem",
-    background: "var(--color-surface)",
-    color: "var(--color-text-primary)",
-  },
-  error: {
-    color: "var(--color-danger)",
-    fontSize: "0.875rem",
-    margin: "0 0 1rem",
-  },
-  button: {
-    width: "100%",
-    padding: "0.6rem",
-    background: "var(--color-accent)",
-    color: "var(--color-text-inverse)",
-    border: "none",
-    borderRadius: 4,
-    fontSize: "1rem",
-    fontWeight: 600,
-    marginTop: "0.5rem",
-  },
-};

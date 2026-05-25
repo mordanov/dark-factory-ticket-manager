@@ -4,9 +4,11 @@ export type ThemeKey = "light" | "dark" | "solarized" | "oceanic" | "high-contra
 
 const STORAGE_KEY = "theme";
 const DEFAULT_THEME: ThemeKey = "light";
+const DARK_THEMES: ThemeKey[] = ["dark", "oceanic", "high-contrast"];
 
 function applyTheme(theme: ThemeKey) {
   document.documentElement.dataset.theme = theme;
+  document.documentElement.classList.toggle("dark", DARK_THEMES.includes(theme));
 }
 
 const VALID_THEMES: ThemeKey[] = ["light", "dark", "solarized", "oceanic", "high-contrast", "warm"];

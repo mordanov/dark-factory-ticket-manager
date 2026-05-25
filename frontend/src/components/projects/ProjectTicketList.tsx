@@ -1,11 +1,20 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import type { FilterState } from "../common/FilterBar";
-import { FilterBar } from "../common/FilterBar";
-import { TicketCard } from "../tickets/TicketCard";
-import { listTickets } from "../../api/projects";
-import type { AssigneeSummary } from "../../types";
+import type { FilterState } from "@/components/common/FilterBar";
+import { FilterBar } from "@/components/common/FilterBar";
+import { listTickets } from "@/api/projects";
+import type { AssigneeSummary } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface ProjectTicketListProps {
   projectId: string;
@@ -31,17 +40,14 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
     const result: AssigneeSummary[] = [];
     for (const ticket of data.items) {
       for (const a of ticket.assignees) {
-        if (!seen.has(a.user_id)) {
-          seen.add(a.user_id);
-          result.push(a);
-        }
+        if (!seen.has(a.user_id)) { seen.add(a.user_id); result.push(a); }
       }
     }
     return result;
   }, [data]);
 
   if (isLoading) return <p>{t("tickets.loading")}</p>;
-  if (isError) return <p style={{ color: "var(--color-danger)" }}>{t("tickets.failedToLoad")}</p>;
+  if (isError) return <p className="text-destructive">{t("tickets.failedToLoad")}</p>;
 
   const tickets = data?.items ?? [];
 
@@ -49,17 +55,42 @@ export function ProjectTicketList({ projectId }: ProjectTicketListProps) {
     <div>
       <FilterBar filters={filters} assignees={allAssignees} onChange={setFilters} />
       {tickets.length === 0 ? (
-        <p style={{ color: "var(--color-text-secondary)", textAlign: "center", padding: "2rem 0" }}>
-          No tickets match the current filters.
-        </p>
+        <p className="text-muted-foreground text-center py-8">No tickets match the current filters.</p>
       ) : (
         <div>
-          {tickets.map((ticket) => (
-            <TicketCard key={ticket.id} ticket={ticket} />
-          ))}
-          <p style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", textAlign: "right" }}>
-            {data?.total ?? tickets.length} total
-          </p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("tickets.list.id")}</TableHead>
+                <TableHead>{t("tickets.list.title")}</TableHead>
+                <TableHead>{t("tickets.list.type")}</TableHead>
+                <TableHead>{t("tickets.list.status")}</TableHead>
+                <TableHead>{t("tickets.list.assignees")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tickets.map((ticket) => (
+                <TableRow key={ticket.id}>
+                  <TableCell className="font-mono text-xs text-primary">{ticket.display_id ?? "-"}</TableCell>
+                  <TableCell>
+                    <Link to={`/tickets/${ticket.id}`} className="text-sm font-medium hover:underline">
+                      {ticket.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs">{t(`tickets.type.${ticket.ticket_type}`)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">{t(`tickets.status.${ticket.status}`)}</Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {ticket.assignees.map((a) => a.email.split("@")[0]).join(", ") || "-"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <p className="text-xs text-muted-foreground text-right mt-2">{data?.total ?? tickets.length} total</p>
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
-import type { TicketEventResponse } from "../../types";
+import type { TicketEventResponse } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 interface TicketEventHistoryProps {
   events: TicketEventResponse[];
@@ -9,38 +11,42 @@ export function TicketEventHistory({ events }: TicketEventHistoryProps) {
   const { t } = useTranslation();
 
   if (events.length === 0) {
-    return <p style={{ color: "var(--color-text-secondary)", fontSize: "0.875rem" }}>{t("tickets.events.noActivity")}</p>;
+    return <p className="text-sm text-muted-foreground">{t("tickets.events.noActivity")}</p>;
   }
 
   return (
-    <ol style={{ listStyle: "none", padding: 0, margin: 0 }}>
-      {events.map((event) => {
+    <div className="space-y-3">
+      {events.map((event, idx) => {
         const labelKey = `tickets.events.label.${event.event_type.replace(".", "_")}`;
+        const stateChange = renderStateChange(event);
         return (
-          <li key={event.id} style={eventRow}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap" }}>
-              <span style={{ fontWeight: 500, fontSize: "0.875rem" }}>
+          <div key={event.id}>
+            <div className="flex items-start gap-3 text-sm">
+              <Badge variant="secondary" className="shrink-0 text-xs">
                 {t(labelKey, { defaultValue: event.event_type })}
-              </span>
-              <span
-                style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)" }}
-                title={new Date(event.occurred_at).toLocaleString()}
-              >
-                {formatRelativeTime(event.occurred_at, t)}
-              </span>
-            </div>
-            <div style={{ fontSize: "0.8rem", color: "var(--color-text-secondary)", marginTop: "0.15rem" }}>
-              {t("tickets.events.by", { email: event.actor.email })}
-            </div>
-            {event.new_state && (
-              <div style={{ marginTop: "0.25rem", fontSize: "0.8rem", color: "var(--color-text-secondary)" }}>
-                {renderStateChange(event)}
+              </Badge>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">
+                    {t("tickets.events.by", { email: event.actor.email })}
+                  </span>
+                  <span
+                    className="text-xs text-muted-foreground whitespace-nowrap"
+                    title={new Date(event.occurred_at).toLocaleString()}
+                  >
+                    {formatRelativeTime(event.occurred_at, t)}
+                  </span>
+                </div>
+                {stateChange && (
+                  <p className="text-foreground text-xs mt-0.5">{stateChange}</p>
+                )}
               </div>
-            )}
-          </li>
+            </div>
+            {idx < events.length - 1 && <Separator className="mt-3" />}
+          </div>
         );
       })}
-    </ol>
+    </div>
   );
 }
 
@@ -68,9 +74,3 @@ function renderStateChange(event: TicketEventResponse): string | null {
   }
   return null;
 }
-
-const eventRow: React.CSSProperties = {
-  paddingBottom: "0.75rem",
-  marginBottom: "0.75rem",
-  borderBottom: "1px solid var(--color-border)",
-};

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 
 const LANGS = ["en", "ru", "es"] as const;
 type Lang = (typeof LANGS)[number];
@@ -13,13 +14,18 @@ export function LanguageSwitcher() {
   }
 
   return (
-    <div style={container} role="group" aria-label={t("language.label")}>
+    <div className="flex border border-border rounded overflow-hidden" role="group" aria-label={t("language.label")}>
       {LANGS.map((lang) => (
         <button
           key={lang}
           onClick={() => handleChange(lang)}
-          style={{ ...btn, ...(current === lang ? btnActive : {}) }}
           aria-pressed={current === lang}
+          className={cn(
+            "px-2 py-1 text-xs font-medium border-r border-border last:border-r-0 transition-colors",
+            current === lang
+              ? "bg-background text-primary font-bold"
+              : "bg-card text-muted-foreground hover:bg-muted"
+          )}
         >
           {t(`language.${lang}`)}
         </button>
@@ -27,27 +33,3 @@ export function LanguageSwitcher() {
     </div>
   );
 }
-
-const container: React.CSSProperties = {
-  display: "flex",
-  border: "1px solid var(--color-border)",
-  borderRadius: 4,
-  overflow: "hidden",
-};
-
-const btn: React.CSSProperties = {
-  padding: "0.3rem 0.6rem",
-  background: "var(--color-surface)",
-  border: "none",
-  borderRight: "1px solid var(--color-border)",
-  cursor: "pointer",
-  fontSize: "0.75rem",
-  fontWeight: 500,
-  color: "var(--color-text-secondary)",
-};
-
-const btnActive: React.CSSProperties = {
-  background: "var(--color-bg)",
-  color: "var(--color-accent)",
-  fontWeight: 700,
-};

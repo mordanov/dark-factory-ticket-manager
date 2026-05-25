@@ -265,66 +265,102 @@ Security architecture work is done only when:
 
 ## Platform Authentication
 
-This section describes how the security-architect agent authenticates to the ticket platform API when running as part of an automated SDLC workflow.
+Use Ticket Manager connection details provisioned by `project-administrator` in `security-architect/credentials.json`.
 
-### Step 1 — Read credentials
+### Credential format
 
-Read `security-architect/credentials.json` from the agent's working directory. The file is created by the project-administrator agent during the bootstrap phase. Halt with a descriptive error if the file is missing or malformed.
+Each agent credential file must include host, port, username, and password:
 
 ```json
 {
+  "host": "localhost",
+  "port": 5173,
   "username": "security-architect@agents.local",
   "password": "<generated-password>"
 }
 ```
 
-The `username` field is the agent's email address on the ticket platform.
+### Step 1 - Wait for bootstrap signal
 
-### Step 2 — Obtain a JWT access token
+After joining brainstorm, wait for `project-administrator` to broadcast `payload.type == "bootstrap-complete"` before calling Ticket Manager.
 
-```bash
-curl -s -X POST http://localhost:8000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "security-architect@agents.local", "password": "<password>"}' \
-  | jq -r '.access_token'
-```
-
-Store the returned `access_token`. Use it as `Authorization: Bearer <token>` on every subsequent API call. The token expires; if any API call returns `401 Unauthorized`, repeat this step to obtain a fresh token before retrying.
-
-### Step 3 — Submit a progress update before transitioning
-
-Before transitioning a ticket to a new status, submit a progress update:
+### Step 2 - Read credentials and build base URL
 
 ```bash
-curl -s -X PUT http://localhost:8000/api/v1/tickets/<ticket_id>/progress \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"content": "Security review completed. All controls verified. No blockers."}'
+CRED_FILE="security-architect/credentials.json"
+test -f "$CRED_FILE" || { echo "Missing $CRED_FILE" >&2; exit 1; }
+
+TM_HOST=$(jq -r '.host' "$CRED_FILE")
+TM_PORT=$(jq -r '.port' "$CRED_FILE")
+TM_USER=$(jq -r '.username' "$CRED_FILE")
+TM_PASSWORD=$(jq -r '.password' "$CRED_FILE")
+TM_BASE_URL="http://${TM_HOST}:${TM_PORT}"
+
+for v in TM_HOST TM_PORT TM_USER TM_PASSWORD; do
+  [ -n "${!v}" ] && [ "${!v}" != "null" ] || { echo "Invalid $CRED_FILE: missing $v" >&2; exit 1; }
+done
 ```
 
-### Step 4 — Transition ticket status
+### Step 3 - Obtain JWT
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/transitions \
-  -H "Authorization: Bearer <access_token>" \
+TOKEN=$(curl -s -X POST "$TM_BASE_URL/api/v1/auth/token" \
   -H "Content-Type: application/json" \
-  -d '{"to_status": "IN_REVIEW"}'
+  -d "{\"email\":\"$TM_USER\",\"password\":\"$TM_PASSWORD\"}" \
+  | jq -r '.access_token')
+
+[ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo "Token request failed" >&2; exit 1; }
 ```
 
-Valid status progression: `OPEN` → `IN_PROGRESS` → `IN_REVIEW` → `DONE`. Only assignees may transition a ticket. Request will be rejected with HTTP 403 if this agent is not listed as an assignee.
+### Step 4 - Create, update, and transition tickets
 
-### Step 5 — Report resource usage
+Use `Authorization: Bearer $TOKEN` on every request.
 
-After completing work on a ticket, record time and token consumption:
+#### Create a ticket
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/tickets/<ticket_id>/resources \
-  -H "Authorization: Bearer <access_token>" \
+curl -s -X POST "$TM_BASE_URL/api/v1/projects/<project_id>/tickets" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"time_spent_delta": 300, "tokens_consumed_delta": 4500}'
+  -d '{
+    "title": "<task-title>",
+    "description": "<task-description>",
+    "ticket_type": "task",
+    "ticket_spec": "security",
+    "tags": ["agent-work", "security-architect"]
+  }'
 ```
 
-Both fields default to 0; at least one must be greater than 0. Negative values are rejected with HTTP 400. Any authenticated agent may increment resource counters on any ticket regardless of assignment.
+#### Update a ticket (progress update)
+
+```bash
+curl -s -X PUT "$TM_BASE_URL/api/v1/tickets/<ticket_id>/progress" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Security review complete. Threats and mitigations documented."}'
+```
+
+#### Transition a ticket
+
+```bash
+curl -s -X POST "$TM_BASE_URL/api/v1/tickets/<ticket_id>/transitions" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"to_status":"IN_REVIEW"}'
+```
+
+Only assignees may transition tickets. Valid statuses: `OPEN`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CLOSED`.
+
+#### Report ticket resource usage after completion
+
+```bash
+curl -s -X POST "$TM_BASE_URL/api/v1/tickets/<ticket_id>/resources" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta":300,"tokens_consumed_delta":1500}'
+```
+
+If any request returns `401`, re-authenticate by repeating Step 3.
 
 ## Communication Style
 

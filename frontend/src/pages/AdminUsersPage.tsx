@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../store/auth";
-import { listAdminUsers, createAdminUser, updateAdminUser, blockAdminUser, unblockAdminUser } from "../api/admin";
-import { UserTable } from "../components/admin/UserTable";
-import { UserForm } from "../components/admin/UserForm";
-import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
-import { ThemeSwitcher } from "../components/common/ThemeSwitcher";
-import type { AdminUserResponse, AdminUserCreate, AdminUserUpdate } from "../types";
+import { useAuthStore } from "@/store/auth";
+import { listAdminUsers, createAdminUser, updateAdminUser, blockAdminUser, unblockAdminUser } from "@/api/admin";
+import { UserTable } from "@/components/admin/UserTable";
+import { UserForm } from "@/components/admin/UserForm";
+import type { AdminUserResponse, AdminUserCreate, AdminUserUpdate } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const QUERY_KEY = ["admin", "users"] as const;
 
@@ -28,18 +28,12 @@ export function AdminUsersPage() {
 
   const createMutation = useMutation({
     mutationFn: (payload: AdminUserCreate) => createAdminUser(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      setShowForm(false);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: QUERY_KEY }); setShowForm(false); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: AdminUserUpdate }) => updateAdminUser(id, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
-      setEditingUser(null);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: QUERY_KEY }); setEditingUser(null); },
   });
 
   const blockMutation = useMutation({
@@ -63,39 +57,28 @@ export function AdminUsersPage() {
   }
 
   return (
-    <div style={page}>
-      <header style={header}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <Link to="/projects" style={{ color: "var(--color-accent)", fontSize: "0.875rem" }}>
-            {t("nav.backToProjects")}
-          </Link>
-          <span style={{ color: "var(--color-border)" }}>/</span>
-          <h1 style={{ margin: 0, fontSize: "1.1rem" }}>{t("admin.users.title")}</h1>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <Link to="/projects" className="text-primary hover:underline">{t("nav.backToProjects")}</Link>
+          <span className="text-border">/</span>
+          <h1 className="text-lg font-semibold m-0">{t("admin.users.title")}</h1>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <LanguageSwitcher />
-          <ThemeSwitcher />
-          <button
-            onClick={() => { setShowForm(true); setEditingUser(null); setActionError(null); }}
-            style={createBtn}
-          >
-            {t("admin.users.newUser")}
-          </button>
-        </div>
-      </header>
+        <Button onClick={() => { setShowForm(true); setEditingUser(null); setActionError(null); }} size="sm">
+          {t("admin.users.newUser")}
+        </Button>
+      </div>
 
-      <main style={main}>
-        {actionError && (
-          <p role="alert" style={{ color: "var(--color-danger)", marginBottom: "1rem", fontSize: "0.875rem" }}>
-            {actionError}
-          </p>
-        )}
+      {actionError && (
+        <p role="alert" className="text-sm text-destructive">{actionError}</p>
+      )}
 
-        {isLoading && <p>{t("admin.users.loading")}</p>}
-        {isError && <p style={{ color: "var(--color-danger)" }}>{t("admin.users.failed")}</p>}
+      {isLoading && <p>{t("admin.users.loading")}</p>}
+      {isError && <p className="text-destructive">{t("admin.users.failed")}</p>}
 
-        {data && (
-          <div style={tableCard}>
+      {data && (
+        <Card>
+          <CardContent className="p-0 overflow-hidden">
             <UserTable
               users={data.items}
               currentUserId={currentUser?.id}
@@ -103,9 +86,9 @@ export function AdminUsersPage() {
               onBlock={(user) => { setActionError(null); blockMutation.mutate(user.id); }}
               onUnblock={(user) => { setActionError(null); unblockMutation.mutate(user.id); }}
             />
-          </div>
-        )}
-      </main>
+          </CardContent>
+        </Card>
+      )}
 
       {(showForm || editingUser) && (
         <UserForm
@@ -117,30 +100,3 @@ export function AdminUsersPage() {
     </div>
   );
 }
-
-const page: React.CSSProperties = { minHeight: "100vh", background: "var(--color-bg)" };
-const header: React.CSSProperties = {
-  background: "var(--color-surface)",
-  borderBottom: "1px solid var(--color-border)",
-  padding: "0.75rem 1.5rem",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-};
-const main: React.CSSProperties = { maxWidth: 900, margin: "0 auto", padding: "1.5rem" };
-const tableCard: React.CSSProperties = {
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 8,
-  overflow: "hidden",
-};
-const createBtn: React.CSSProperties = {
-  padding: "0.4rem 0.9rem",
-  background: "var(--color-accent)",
-  color: "var(--color-text-inverse)",
-  border: "none",
-  borderRadius: 4,
-  fontWeight: 600,
-  fontSize: "0.875rem",
-  cursor: "pointer",
-};

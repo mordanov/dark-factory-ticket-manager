@@ -30,7 +30,9 @@ describe("TicketForm", () => {
     const user = userEvent.setup();
     render(<TicketForm onSubmit={onSubmit} />);
     await user.type(screen.getByLabelText(/title/i), "  My ticket  ");
-    await user.selectOptions(screen.getByLabelText(/specification/i), "backend");
+    // Radix Select: click trigger to open, then click the option by text
+    await user.click(screen.getByLabelText(/specification/i));
+    await user.click(screen.getByRole("option", { name: /backend/i }));
     await user.click(screen.getByRole("button", { name: /save/i }));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({

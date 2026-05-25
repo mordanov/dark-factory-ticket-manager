@@ -119,62 +119,102 @@ Provide frontend tests appropriate to the change:
 
 ## Platform Authentication
 
-Before performing any ticket platform API calls, authenticate using your agent credential file.
+Use Ticket Manager connection details provisioned by `project-administrator` in `frontend/credentials.json`.
 
-### Step 1 — Read credentials
+### Credential format
 
-```bash
-cat frontend/credentials.json
-# {"username": "frontend@agents.local", "password": "<password>"}
+Each agent credential file must include host, port, username, and password:
+
+```json
+{
+  "host": "localhost",
+  "port": 5173,
+  "username": "frontend@agents.local",
+  "password": "<generated-password>"
+}
 ```
 
-### Step 2 — Obtain a JWT
+### Step 1 - Wait for bootstrap signal
+
+After joining brainstorm, wait for `project-administrator` to broadcast `payload.type == "bootstrap-complete"` before calling Ticket Manager.
+
+### Step 2 - Read credentials and build base URL
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/token \
+CRED_FILE="frontend/credentials.json"
+test -f "$CRED_FILE" || { echo "Missing $CRED_FILE" >&2; exit 1; }
+
+TM_HOST=$(jq -r '.host' "$CRED_FILE")
+TM_PORT=$(jq -r '.port' "$CRED_FILE")
+TM_USER=$(jq -r '.username' "$CRED_FILE")
+TM_PASSWORD=$(jq -r '.password' "$CRED_FILE")
+TM_BASE_URL="http://${TM_HOST}:${TM_PORT}"
+
+for v in TM_HOST TM_PORT TM_USER TM_PASSWORD; do
+  [ -n "${!v}" ] && [ "${!v}" != "null" ] || { echo "Invalid $CRED_FILE: missing $v" >&2; exit 1; }
+done
+```
+
+### Step 3 - Obtain JWT
+
+```bash
+TOKEN=$(curl -s -X POST "$TM_BASE_URL/api/v1/auth/token" \
   -H "Content-Type: application/json" \
-  -d '{"email":"frontend@agents.local","password":"<password>"}' \
+  -d "{\"email\":\"$TM_USER\",\"password\":\"$TM_PASSWORD\"}" \
   | jq -r '.access_token')
+
+[ -n "$TOKEN" ] && [ "$TOKEN" != "null" ] || { echo "Token request failed" >&2; exit 1; }
 ```
 
-Store the token in a shell variable or environment variable for the duration of your session. Tokens are short-lived — if any API call returns `401 Unauthorized`, repeat Step 2 to obtain a fresh token and retry the request.
+### Step 4 - Create, update, and transition tickets
 
-### Step 3 — Use Bearer auth on all API calls
+Use `Authorization: Bearer $TOKEN` on every request.
 
-Include `Authorization: Bearer $TOKEN` on every subsequent request.
-
-### Ticket operation examples
-
-**Submit a progress update** (required before transitioning a ticket):
+#### Create a ticket
 
 ```bash
-curl -s -X PUT http://localhost:8000/api/v1/tickets/{ticket_id}/progress \
+curl -s -X POST "$TM_BASE_URL/api/v1/projects/<project_id>/tickets" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"content": "Implemented the frontend changes for resource tracking."}'
+  -d '{
+    "title": "<task-title>",
+    "description": "<task-description>",
+    "ticket_type": "task",
+    "ticket_spec": "frontend",
+    "tags": ["agent-work", "frontend"]
+  }'
 ```
 
-**Transition a ticket** (actor must be an assignee; progress update must exist):
+#### Update a ticket (progress update)
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/transitions \
+curl -s -X PUT "$TM_BASE_URL/api/v1/tickets/<ticket_id>/progress" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"to_status": "IN_REVIEW"}'
+  -d '{"content":"UI implementation complete and verified."}'
 ```
 
-Valid `to_status` values from current status: `OPEN→IN_PROGRESS`, `IN_PROGRESS→IN_REVIEW`, `IN_REVIEW→DONE|IN_PROGRESS`, `DONE→CLOSED|IN_PROGRESS`. Returns `403` if you are not an assignee; `422` if the progress gate is not satisfied.
-
-**Report resource usage** (call after completing work on a ticket):
+#### Transition a ticket
 
 ```bash
-curl -s -X POST http://localhost:8000/api/v1/tickets/{ticket_id}/resources \
+curl -s -X POST "$TM_BASE_URL/api/v1/tickets/<ticket_id>/transitions" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"time_spent_delta": 1800, "tokens_consumed_delta": 4200}'
+  -d '{"to_status":"IN_REVIEW"}'
 ```
 
-`time_spent_delta` is in seconds; `tokens_consumed_delta` is token count. At least one field must be `> 0`. Returns updated totals and a journal event ID.
+Only assignees may transition tickets. Valid statuses: `OPEN`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CLOSED`.
+
+#### Report ticket resource usage after completion
+
+```bash
+curl -s -X POST "$TM_BASE_URL/api/v1/tickets/<ticket_id>/resources" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"time_spent_delta":300,"tokens_consumed_delta":1500}'
+```
+
+If any request returns `401`, re-authenticate by repeating Step 3.
 
 ---
 

@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { listAllTickets } from "../../api/projects";
-import type { TicketStatus } from "../../types";
-import { KanbanColumn } from "../tickets/KanbanColumn";
+import { listAllTickets } from "@/api/projects";
+import type { TicketStatus } from "@/types";
+import { KanbanColumn } from "@/components/tickets/KanbanColumn";
 
 interface Props {
   projectId: string;
@@ -25,13 +25,13 @@ export function KanbanBoard({ projectId }: Props) {
     queryFn: () => listAllTickets(projectId),
   });
 
-  if (isLoading) return <p style={{ padding: "2rem", color: "var(--color-text-secondary)" }}>{t("tickets.loadingBoard")}</p>;
-  if (isError) return <p style={{ padding: "2rem", color: "var(--color-danger)" }}>{t("tickets.failedToLoad")}</p>;
+  if (isLoading) return <p className="p-8 text-muted-foreground">{t("tickets.loadingBoard")}</p>;
+  if (isError) return <p className="p-8 text-destructive">{t("tickets.failedToLoad")}</p>;
 
   const tickets = data?.items ?? [];
 
   return (
-    <div style={board}>
+    <div className="flex gap-4 overflow-x-auto pb-4">
       {STATUSES.map((status) => (
         <KanbanColumn
           key={status}
@@ -45,11 +45,3 @@ export function KanbanBoard({ projectId }: Props) {
     </div>
   );
 }
-
-const board: React.CSSProperties = {
-  display: "flex",
-  gap: 14,
-  alignItems: "flex-start",
-  overflowX: "auto",
-  paddingBottom: 16,
-};

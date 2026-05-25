@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { searchTags } from "../../api/tickets";
-import type { TagResponse } from "../../types";
+import { X } from "lucide-react";
+import { searchTags } from "@/api/tickets";
+import type { TagResponse } from "@/types";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 interface TagInputProps {
   value: string[];
@@ -17,19 +20,13 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (input.length < 1) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      return;
-    }
+    if (input.length < 1) { setSuggestions([]); setShowDropdown(false); return; }
     const timer = setTimeout(async () => {
       try {
         const results = await searchTags(input);
         setSuggestions(results.filter((tg) => !value.includes(tg.name)));
         setShowDropdown(true);
-      } catch {
-        // ignore search errors
-      }
+      } catch { /* ignore */ }
     }, 200);
     return () => clearTimeout(timer);
   }, [input, value]);
@@ -49,51 +46,51 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (input.trim()) addTag(input);
-    } else if (e.key === "Escape") {
-      setShowDropdown(false);
-    }
+    if (e.key === "Enter") { e.preventDefault(); if (input.trim()) addTag(input); }
+    else if (e.key === "Escape") setShowDropdown(false);
   }
 
   return (
     <div>
       {value.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginBottom: "0.4rem" }}>
+        <div className="flex flex-wrap gap-1.5 mb-2">
           {value.map((tag) => (
-            <span key={tag} style={pill}>
+            <Badge key={tag} variant="secondary" className="gap-1">
               {tag}
               {!disabled && (
                 <button
                   type="button"
                   onClick={() => removeTag(tag)}
-                  style={pillRemove}
+                  className="ml-0.5 rounded-full hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   title={t("tickets.tagInput.remove", { tag })}
                 >
-                  ×
+                  <X className="h-3 w-3" />
                 </button>
               )}
-            </span>
+            </Badge>
           ))}
         </div>
       )}
 
       {!disabled && value.length < 10 && (
-        <div style={{ position: "relative" }}>
-          <input
+        <div className="relative">
+          <Input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
             placeholder={t("tickets.tagInput.placeholder")}
-            style={tagInputStyle}
+            className="h-8 text-sm"
           />
           {showDropdown && suggestions.length > 0 && (
-            <ul style={dropdown}>
+            <ul className="absolute top-full left-0 right-0 bg-popover border border-border rounded shadow-md list-none m-0 p-0 z-50 max-h-48 overflow-y-auto">
               {suggestions.map((tg) => (
-                <li key={tg.id} onMouseDown={() => addTag(tg.name)} style={dropdownItem}>
+                <li
+                  key={tg.id}
+                  onMouseDown={() => addTag(tg.name)}
+                  className="px-3 py-2 cursor-pointer text-sm hover:bg-accent hover:text-accent-foreground"
+                >
                   {tg.name}
                 </li>
               ))}
@@ -102,60 +99,8 @@ export function TagInput({ value, onChange, disabled }: TagInputProps) {
         </div>
       )}
       {value.length >= 10 && (
-        <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>{t("tickets.tagInput.maxReached")}</span>
+        <span className="text-xs text-muted-foreground">{t("tickets.tagInput.maxReached")}</span>
       )}
     </div>
   );
 }
-
-const pill: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "0.2rem",
-  background: "var(--color-accent-subtle)",
-  color: "var(--color-accent)",
-  borderRadius: 12,
-  padding: "0.15rem 0.5rem 0.15rem 0.6rem",
-  fontSize: "0.78rem",
-  fontWeight: 500,
-};
-const pillRemove: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  color: "var(--color-accent)",
-  fontSize: "1rem",
-  padding: 0,
-  lineHeight: 1,
-  marginLeft: "0.1rem",
-};
-const tagInputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "0.4rem 0.6rem",
-  border: "1px solid var(--color-border)",
-  borderRadius: 4,
-  fontSize: "0.875rem",
-  background: "var(--color-surface)",
-  color: "var(--color-text-primary)",
-};
-const dropdown: React.CSSProperties = {
-  position: "absolute",
-  top: "100%",
-  left: 0,
-  right: 0,
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 4,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-  listStyle: "none",
-  margin: 0,
-  padding: 0,
-  zIndex: 200,
-  maxHeight: 200,
-  overflowY: "auto",
-};
-const dropdownItem: React.CSSProperties = {
-  padding: "0.4rem 0.75rem",
-  cursor: "pointer",
-  fontSize: "0.875rem",
-};

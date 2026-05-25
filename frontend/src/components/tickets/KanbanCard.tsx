@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { TicketResponse } from "../../types";
+import { motion } from "framer-motion";
+import type { TicketResponse } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cardHover } from "@/lib/motion";
 
 interface Props {
   ticket: TicketResponse;
@@ -11,10 +16,10 @@ export function KanbanCard({ ticket }: Props) {
   const pendingAssignees = ticket.assignees.filter((a) => !a.has_progress_update);
 
   const activeFlags = [
-    ticket.urgent && { label: "U", title: "Urgent", color: "#e74c3c" },
-    ticket.blocker && { label: "B", title: "Blocker", color: "#c0392b" },
-    ticket.bugfix && { label: "F", title: "Bugfix", color: "#8e44ad" },
-  ].filter(Boolean) as { label: string; title: string; color: string }[];
+    ticket.urgent && { label: "U", title: "Urgent" },
+    ticket.blocker && { label: "B", title: "Blocker" },
+    ticket.bugfix && { label: "F", title: "Bugfix" },
+  ].filter(Boolean) as { label: string; title: string }[];
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("ticketId", ticket.id);
@@ -23,129 +28,68 @@ export function KanbanCard({ ticket }: Props) {
   }
 
   return (
-    <div draggable onDragStart={handleDragStart} style={card}>
-      {/* Header row */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-        {ticket.display_id && (
-          <span style={idLabel}>{ticket.display_id}</span>
-        )}
-        <div style={{ display: "flex", gap: 3, marginLeft: "auto" }}>
-          {activeFlags.map((f) => (
-            <span key={f.label} title={f.title} style={{ ...flagDot, background: f.color }}>{f.label}</span>
-          ))}
-        </div>
-      </div>
+    <div draggable onDragStart={handleDragStart}>
+      <motion.div {...cardHover}>
+      <Card className="cursor-grab hover:shadow-md transition-shadow mb-2 select-none">
+        <CardContent className="p-2.5">
+          <div className="flex justify-between items-start mb-1">
+            {ticket.display_id && (
+              <span className="font-mono text-xs font-bold text-primary">{ticket.display_id}</span>
+            )}
+            {activeFlags.length > 0 && (
+              <div className="flex gap-1 ml-auto">
+                {activeFlags.map((f) => (
+                  <Badge key={f.label} variant="destructive" className="h-4 w-4 p-0 text-[10px] flex items-center justify-center rounded-full" title={f.title}>
+                    {f.label}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
 
-      <Link to={`/tickets/${ticket.id}`} style={titleLink}>
-        {ticket.title}
-      </Link>
+          <Link to={`/tickets/${ticket.id}`} className="block font-semibold text-sm text-foreground hover:underline leading-snug">
+            {ticket.title}
+          </Link>
 
-      <div style={{ fontSize: "0.7rem", color: "var(--color-text-secondary)", marginTop: 4 }}>
-        {t(`tickets.type.${ticket.ticket_type}`)}
-      </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {t(`tickets.type.${ticket.ticket_type}`)}
+          </div>
 
-      {ticket.assignees.length > 0 && (
-        <div style={avatarRow}>
-          {ticket.assignees.map((a) => (
-            <span key={a.user_id} style={avatar} title={a.email}>
-              {a.email[0].toUpperCase()}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {ticket.tags.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 6 }}>
-          {ticket.tags.slice(0, 3).map((tg) => (
-            <span key={tg.id} style={tagPill}>{tg.name}</span>
-          ))}
-          {ticket.tags.length > 3 && (
-            <span style={{ ...tagPill, color: "var(--color-text-secondary)", background: "var(--color-bg)" }}>+{ticket.tags.length - 3}</span>
+          {ticket.assignees.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {ticket.assignees.map((a) => (
+                <Avatar key={a.user_id} className="h-6 w-6" title={a.email}>
+                  <AvatarFallback className="text-[10px]">{a.email[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
+              ))}
+            </div>
           )}
-        </div>
-      )}
 
-      {pendingAssignees.length > 0 && (
-        <div
-          style={pendingBadge}
-          title={`Awaiting progress from: ${pendingAssignees.map((a) => a.email).join(", ")}`}
-        >
-          ⚠ {pendingAssignees.length} pending
-        </div>
-      )}
+          {ticket.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {ticket.tags.slice(0, 3).map((tg) => (
+                <span key={tg.id} className="bg-accent text-accent-foreground rounded px-1.5 py-px text-[11px]">
+                  {tg.name}
+                </span>
+              ))}
+              {ticket.tags.length > 3 && (
+                <span className="text-muted-foreground text-[11px]">+{ticket.tags.length - 3}</span>
+              )}
+            </div>
+          )}
+
+          {pendingAssignees.length > 0 && (
+            <Badge
+              variant="outline"
+              className="mt-1.5 text-[11px] text-warning border-warning/50"
+              title={`Awaiting progress from: ${pendingAssignees.map((a) => a.email).join(", ")}`}
+            >
+              ⚠ {pendingAssignees.length} pending
+            </Badge>
+          )}
+        </CardContent>
+      </Card>
+      </motion.div>
     </div>
   );
 }
-
-const card: React.CSSProperties = {
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 6,
-  padding: "10px 12px",
-  marginBottom: 8,
-  cursor: "grab",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-  userSelect: "none",
-};
-const idLabel: React.CSSProperties = {
-  fontFamily: "monospace",
-  fontSize: "0.68rem",
-  color: "var(--color-accent)",
-  fontWeight: 700,
-};
-const flagDot: React.CSSProperties = {
-  width: 16,
-  height: 16,
-  borderRadius: "50%",
-  color: "#fff",
-  fontSize: "0.6rem",
-  fontWeight: 900,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-} as React.CSSProperties;
-const titleLink: React.CSSProperties = {
-  fontWeight: 600,
-  color: "var(--color-text-primary)",
-  textDecoration: "none",
-  fontSize: "0.875rem",
-  display: "block",
-  lineHeight: 1.4,
-};
-const avatarRow: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 4,
-  marginTop: 8,
-};
-const avatar: React.CSSProperties = {
-  width: 22,
-  height: 22,
-  borderRadius: "50%",
-  background: "var(--color-accent-subtle)",
-  color: "var(--color-accent)",
-  fontSize: "0.7rem",
-  fontWeight: 700,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "default",
-} as React.CSSProperties;
-const tagPill: React.CSSProperties = {
-  background: "var(--color-accent-subtle)",
-  color: "var(--color-accent)",
-  borderRadius: 8,
-  padding: "1px 6px",
-  fontSize: "0.68rem",
-  fontWeight: 500,
-};
-const pendingBadge: React.CSSProperties = {
-  marginTop: 6,
-  fontSize: "0.72rem",
-  color: "#b7770d",
-  background: "#fff8e1",
-  border: "1px solid #ffe082",
-  borderRadius: 4,
-  padding: "2px 6px",
-  display: "inline-block",
-};

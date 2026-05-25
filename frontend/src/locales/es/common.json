@@ -18,7 +18,8 @@
   },
   "nav": {
     "backToProjects": "← Proyectos",
-    "backToProject": "← Volver al proyecto"
+    "backToProject": "← Volver al proyecto",
+    "openMenu": "Abrir menú de navegación"
   },
   "projects": {
     "title": "Proyectos",
