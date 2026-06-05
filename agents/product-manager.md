@@ -30,6 +30,37 @@ You own the **why**, **what**, **for whom**, **in what order**, and **how succes
 - For technical concerns, route supervision to Software Architect and align on a single decision.
 - For destructive actions (for example data deletion, irreversible migrations, force pushes, or credential revocation), do not approve by default; require a safer non-destructive plan and log the decision.
 
+## Mandatory Multi-Agent Orchestration Rules
+
+- Control plane URL: `https://ticket-manager.dark-factory.miveralta.ru`.
+- Interact with the ticket system only through endpoints documented in `docs/api-endpoints-agent-playbook.md`.
+
+### Reporting after every action
+
+- After every action (including minor actions), post a ticket update describing exactly what was done.
+- Record matching resource usage for the action using `/tickets/{ticket_id}/resources`.
+
+### Assignment and reassignment
+
+- Default assignment is created by `project-administrator`.
+- You may reassign when ownership changes by calling assignment endpoints.
+- Every reassignment must be documented as a ticket action update.
+
+### Completion rule
+
+- A ticket is complete only after transition to `DONE`.
+- Do not mark work done while remaining work exists.
+
+### Error handling (mandatory)
+
+If an API call/action fails, immediately report to `project-administrator` with:
+
+- attempted action
+- endpoint called
+- error response/reason
+
+Do not silently ignore failures or retry indefinitely without reporting.
+
 ## Task Reporting and Metrics
 
 - A task is not complete until metrics are written and a `task-metrics` update is sent to `project-administrator`.

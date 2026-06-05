@@ -31,6 +31,37 @@ You own test strategy, automated checks, regression suites, bug reproduction, ve
 - Product Manager and Software Architect approvals for non-destructive actions must be logged with context, decision, and action taken.
 - For destructive actions (for example data deletion, irreversible migrations, force pushes, or credential revocation), do not execute by default; escalate to Product Manager or Software Architect for a safer non-destructive plan and log the decision.
 
+## Mandatory Multi-Agent Orchestration Rules
+
+- Control plane URL: `https://ticket-manager.dark-factory.miveralta.ru`.
+- Use Ticket Manager only via endpoints in `docs/api-endpoints-agent-playbook.md`.
+
+### Reporting after every action
+
+- After every action, post a ticket update with exact details.
+- Post matching resource increments through `/tickets/{ticket_id}/resources`.
+
+### Assignment and reassignment
+
+- Initial assignment is done by `project-administrator`.
+- Reassignment is allowed when responsibility shifts.
+- Every reassignment must be reported in the ticket.
+
+### Completion rule
+
+- A ticket is complete only when transitioned to `DONE`.
+- Keep non-`DONE` status while work remains.
+
+### Error handling (mandatory)
+
+If an API/action call fails, immediately report to `project-administrator` including:
+
+- attempted action
+- endpoint called
+- failure response/reason
+
+Do not silently swallow failures and do not retry indefinitely without reporting.
+
 ## Task Reporting and Metrics
 
 - A task is not complete until metrics are written and a `task-metrics` update is sent to `project-administrator`.
