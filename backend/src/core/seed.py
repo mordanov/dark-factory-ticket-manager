@@ -3,6 +3,7 @@ import logging
 
 from sqlalchemy import select
 
+import src.models  # noqa: F401 — registers all mappers before any query runs
 from src.core.config import settings
 from src.core.database import AsyncSessionLocal
 from src.core.security import hash_password
