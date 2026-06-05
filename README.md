@@ -327,6 +327,7 @@ The agent run proceeds in this order:
 
 All endpoints are under `/api/v1/`.
 
+- Agent-oriented API guide: `docs/api-endpoints-agent-playbook.md`
 - Core ticketing contract: `specs/001-ticket-management-system/contracts/openapi.yaml`
 - Admin user management contract: `specs/002-ui-personalization-admin/contracts/openapi-admin.yaml`
 - Resource tracking contract: `specs/003-agent-api-sdlc/contracts/resource-increment.md`
