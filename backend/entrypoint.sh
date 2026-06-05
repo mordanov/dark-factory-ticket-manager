@@ -21,4 +21,6 @@ async def migrate():
 asyncio.run(migrate())
 EOF
 
+python -m src.core.seed
+
 exec uvicorn src.main:app --host 0.0.0.0 --port 8000

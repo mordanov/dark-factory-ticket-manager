@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     frontend_url: str = "http://localhost:5173"
 
+    default_admin_email: str = ""
+    default_admin_password: str = ""
+    default_user_email: str = ""
+    default_user_password: str = ""
+
     @field_validator("secret_key", "refresh_token_secret")
     @classmethod
     def require_minimum_entropy(cls, v: str, info) -> str:
