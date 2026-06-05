@@ -309,8 +309,7 @@ Each agent credential file must include host, port, username, and password:
 
 ```json
 {
-  "host": "localhost",
-  "port": 5173,
+  "host": "https://ticket-manager.dark-factory.miveralta.ru",
   "username": "product-manager@agents.local",
   "password": "<generated-password>"
 }
@@ -327,12 +326,11 @@ CRED_FILE="product-manager/credentials.json"
 test -f "$CRED_FILE" || { echo "Missing $CRED_FILE" >&2; exit 1; }
 
 TM_HOST=$(jq -r '.host' "$CRED_FILE")
-TM_PORT=$(jq -r '.port' "$CRED_FILE")
 TM_USER=$(jq -r '.username' "$CRED_FILE")
 TM_PASSWORD=$(jq -r '.password' "$CRED_FILE")
-TM_BASE_URL="http://${TM_HOST}:${TM_PORT}"
+TM_BASE_URL="$TM_HOST"
 
-for v in TM_HOST TM_PORT TM_USER TM_PASSWORD; do
+for v in TM_HOST TM_USER TM_PASSWORD; do
   [ -n "${!v}" ] && [ "${!v}" != "null" ] || { echo "Invalid $CRED_FILE: missing $v" >&2; exit 1; }
 done
 ```
