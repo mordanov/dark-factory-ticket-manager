@@ -104,6 +104,7 @@ jobs:
 
       - name: Dependency audit (pip-audit)
         run: |
+          pip install --upgrade pip
           pip install pip-audit
           pip-audit --skip-editable \
             --ignore-vuln PYSEC-2025-185 \
